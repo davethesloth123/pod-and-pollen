@@ -212,7 +212,6 @@ function StepGardenType({ value, onChange }: { value: string; onChange: (v: stri
 
 // ─── Step 4: Where do you grow (first location) ───────────────
 function StepGarden({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const suggestions = ['Top Bed', 'Long Border', 'Trial Bed', 'Greenhouse', 'Pots — Patio']
   return (
     <div>
       <div className="h-display" style={{ fontWeight: 600, fontSize: 28, color: 'var(--ink)', lineHeight: 1.1, marginBottom: 10 }}>Where do you grow?</div>
@@ -225,11 +224,6 @@ function StepGarden({ value, onChange }: { value: string; onChange: (v: string) 
         placeholder="e.g. Top Bed"
         style={{ width: '100%', boxSizing: 'border-box', padding: '16px 18px', borderRadius: 14, border: '1px solid var(--line-2)', background: 'var(--surface)', fontSize: 18, fontFamily: 'Lexend, sans-serif', color: 'var(--ink)', outline: 'none' }}
       />
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
-        {suggestions.map(s => (
-          <button key={s} onClick={() => onChange(s)} style={{ ...btnReset, cursor: 'pointer', padding: '8px 13px', borderRadius: 999, background: 'var(--surface)', border: '1px solid var(--line-2)', fontSize: 13.5, color: 'var(--ink-2)' }}>{s}</button>
-        ))}
-      </div>
       <div style={{ marginTop: 24, padding: 14, background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--line)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 7 }}>
           <Icon name="check" size={18} stroke="var(--green)" sw={2.2} />
