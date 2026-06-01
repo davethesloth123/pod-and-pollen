@@ -3,7 +3,8 @@ import { useState } from 'react'
 import { Icon } from '@/components/ui/icon'
 import { IrisThumb, IrisCard, SectionLabel, Chip, Segmented, btnReset, EmptyState } from '@/components/ui/shared'
 import { IrisBloom } from '@/components/ui/iris-bloom'
-import { irises, locations, crosses, crossesList, crossStats, byId, PAL, STATUS } from '@/lib/data'
+import { irises, crosses, crossesList, crossStats, byId, PAL, STATUS } from '@/lib/data'
+import { useData } from '@/lib/data-context'
 import type { Iris } from '@/types'
 
 // ── Kind colour map ───────────────────────────────────────────
@@ -46,6 +47,7 @@ function SummaryStat({ n, l, icon, tint = 'accent' }: { n: number | string; l: s
 
 // ── GardenMap ─────────────────────────────────────────────────
 function GardenMap({ onPick }: { onPick: (id: string) => void }) {
+  const { locations } = useData()
   // Group irises by location name, with flowering sub-list
   const byLoc: Record<string, { flowering: Iris[] }> = {}
   for (const loc of locations) {
@@ -112,6 +114,7 @@ function GardenMap({ onPick }: { onPick: (id: string) => void }) {
 
 // ── GardenList ────────────────────────────────────────────────
 function GardenList({ onPick }: { onPick: (id: string) => void }) {
+  const { locations } = useData()
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       {locations.map(loc => {
@@ -206,6 +209,7 @@ export function GardenScreen({ go, wide, openAdd, openLocation, toast }: {
   openLocation?: (id: string) => void
   toast?: (msg: string) => void
 }) {
+  const { locations } = useData()
   const [view, setView] = useState<'map' | 'list'>('map')
 
   const totalPlants = irises.length
@@ -315,6 +319,7 @@ export function GardenDetailScreen({ id, go }: {
   id: string
   go: (screen: string, params?: Record<string, unknown>) => void
 }) {
+  const { locations } = useData()
   const loc = locations.find(l => l.id === id)
   if (!loc) {
     return (

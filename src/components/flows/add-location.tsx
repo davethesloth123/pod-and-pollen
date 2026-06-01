@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { Icon } from '@/components/ui/icon'
 import { Sheet, btnReset, SectionLabel } from '@/components/ui/shared'
+import { useData } from '@/lib/data-context'
 
 interface AddLocationFlowProps {
   open: boolean
@@ -35,25 +36,40 @@ const labelStyle: React.CSSProperties = {
 }
 
 export function AddLocationFlow({ open, onClose, onSaved }: AddLocationFlowProps) {
+  const { addLocation } = useData()
   const [name, setName] = useState('')
   const [kind, setKind] = useState('Bed')
   const [sun, setSun] = useState('Full sun')
   const [soil, setSoil] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
   function handleClose() {
     setName('')
     setKind('Bed')
     setSun('Full sun')
     setSoil('')
+    setSaving(false)
+    setError('')
     onClose()
   }
 
-  function handleSave() {
-    onSaved({ name })
-    handleClose()
+  async function handleSave() {
+    if (saving) return
+    setSaving(true)
+    setError('')
+    try {
+      await addLocation({ name: name.trim(), kind, sun, soil: soil.trim() || undefined })
+      onSaved({ name: name.trim() })
+      handleClose()
+    } catch (e) {
+      console.error(e)
+      setError('Could not save. Please try again.')
+      setSaving(false)
+    }
   }
 
-  const canSave = name.trim().length > 0
+  const canSave = name.trim().length > 0 && !saving
 
   return (
     <Sheet open={open} onClose={handleClose} title="Add Location">
@@ -136,6 +152,10 @@ export function AddLocationFlow({ open, onClose, onSaved }: AddLocationFlowProps
           />
         </div>
 
+        {error && (
+          <div style={{ padding: 12, background: 'var(--rose-bg)', border: '1px solid var(--rose-line)', borderRadius: 12, fontSize: 13.5, color: 'var(--rose)' }}>{error}</div>
+        )}
+
         <button
           onClick={handleSave}
           disabled={!canSave}
@@ -157,7 +177,7 @@ export function AddLocationFlow({ open, onClose, onSaved }: AddLocationFlowProps
           }}
         >
           <Icon name="pin" size={18} stroke="#fff" sw={2} />
-          Save Location
+          {saving ? 'Saving…' : 'Save Location'}
         </button>
       </div>
     </Sheet>
