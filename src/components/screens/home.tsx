@@ -222,12 +222,45 @@ function InFlowerWidget({ go }: { go: (view: string | -1, params?: Record<string
   )
 }
 
-function RecentWidget({ go: _go }: { go: (view: string | -1, params?: Record<string, any>) => void }) {
-  // Activity feed (notes/photos timeline) lands with the notes slice.
+function RecentWidget({ go }: { go: (view: string | -1, params?: Record<string, any>) => void }) {
+  const { recent, byId } = useData()
+  if (recent.length === 0) {
+    return (
+      <div>
+        <WidgetHeader title="Recent Activity" />
+        <EmptyHint icon="clock" title="No recent activity" body="Notes and photos you add will appear here." />
+      </div>
+    )
+  }
   return (
     <div>
-      <WidgetHeader title="Recent Activity" />
-      <EmptyHint icon="clock" title="No recent activity" body="Notes and photos you add will appear here." />
+      <WidgetHeader title="Recent Activity" count={recent.length} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {recent.map((item, idx) => {
+          const iris = byId(item.irisId)
+          return (
+            <button
+              key={item.irisId + item.ts + idx}
+              onClick={() => go('detail', { id: item.irisId })}
+              style={{ ...btnReset, cursor: 'pointer', width: '100%', textAlign: 'left' }}
+            >
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '10px 2px', borderBottom: idx < recent.length - 1 ? '1px solid var(--line)' : 'none' }}>
+                <div style={{ width: 56, height: 56, borderRadius: 12, overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
+                  {iris && <IrisThumb iris={iris} r={12} />}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 2 }}>
+                    <span style={{ fontWeight: 600, fontSize: 14.5, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>{item.irisName}</span>
+                    <span style={{ fontSize: 12, color: 'var(--ink-4)', flexShrink: 0 }}>{item.d}</span>
+                  </div>
+                  <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--accent)', marginBottom: 2 }}>{item.t}</div>
+                  <div style={{ fontSize: 12.5, color: 'var(--ink-3)', lineHeight: 1.35, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const }}>{item.x}</div>
+                </div>
+              </div>
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }

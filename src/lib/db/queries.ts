@@ -1,5 +1,15 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Location, Iris, IrisKind, IrisStatus } from '@/types'
+import type { Location, Iris, IrisKind, IrisStatus, IrisNote, FloweringRecord, EvalRecord } from '@/types'
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+function fmtDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  } catch {
+    return iso
+  }
+}
 
 // ─── Row → app-shape mappers ──────────────────────────────────
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -151,7 +161,7 @@ export async function insertIris(supabase: SupabaseClient, userId: string, input
     .single()
   if (error) throw error
   const iris = dbToIris(data)
-  // Persist the optional free-text note as a note row (display lands in the notes slice)
+  // Persist the optional free-text note as a note row
   if (input.note && input.note.trim()) {
     try {
       await supabase.from('notes').insert({
@@ -162,4 +172,155 @@ export async function insertIris(supabase: SupabaseClient, userId: string, input
     }
   }
   return iris
+}
+
+// ─── Notes ────────────────────────────────────────────────────
+export type IrisNoteRow = IrisNote & { irisId: string; ts: string }
+
+export function dbToNote(row: any): IrisNoteRow {
+  return {
+    irisId: row.iris_id,
+    id: row.id,
+    d: fmtDate(row.noted_at),
+    t: row.note_type ?? 'General',
+    x: row.body,
+    ts: row.noted_at,
+  }
+}
+
+export interface NewNote { irisId: string; type: string; body: string; date?: string }
+
+export async function fetchNotes(supabase: SupabaseClient, userId: string): Promise<IrisNoteRow[]> {
+  const { data, error } = await supabase
+    .from('notes')
+    .select('*')
+    .eq('user_id', userId)
+    .order('noted_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []).map(dbToNote)
+}
+
+export async function insertNote(supabase: SupabaseClient, userId: string, input: NewNote): Promise<IrisNoteRow> {
+  const { data, error } = await supabase
+    .from('notes')
+    .insert({
+      user_id: userId,
+      iris_id: input.irisId,
+      note_type: input.type || 'General',
+      body: input.body,
+      noted_at: input.date ? new Date(input.date).toISOString() : new Date().toISOString(),
+    })
+    .select()
+    .single()
+  if (error) throw error
+  return dbToNote(data)
+}
+
+// ─── Flowering records ────────────────────────────────────────
+export type FloweringRow = FloweringRecord & { irisId: string }
+
+export function dbToFlowering(row: any): FloweringRow {
+  return {
+    irisId: row.iris_id,
+    year: row.year,
+    first: row.first_date ?? null,
+    last: row.last_date ?? null,
+    stems: row.stems ?? undefined,
+    buds: row.buds ?? undefined,
+    height: row.height_cm ?? undefined,
+    notes: row.notes ?? undefined,
+  }
+}
+
+export interface NewFlowering {
+  irisId: string; year: number; first?: string; last?: string
+  stems?: number; buds?: number; height?: number; notes?: string
+}
+
+export async function fetchFlowering(supabase: SupabaseClient, userId: string): Promise<FloweringRow[]> {
+  const { data, error } = await supabase
+    .from('flowering_records')
+    .select('*')
+    .eq('user_id', userId)
+    .order('year', { ascending: false })
+  if (error) throw error
+  return (data ?? []).map(dbToFlowering)
+}
+
+export async function upsertFlowering(supabase: SupabaseClient, userId: string, input: NewFlowering): Promise<FloweringRow> {
+  const { data, error } = await supabase
+    .from('flowering_records')
+    .upsert({
+      user_id: userId,
+      iris_id: input.irisId,
+      year: input.year,
+      first_date: input.first || null,
+      last_date: input.last || null,
+      stems: input.stems ?? null,
+      buds: input.buds ?? null,
+      height_cm: input.height ?? null,
+      notes: input.notes || null,
+    }, { onConflict: 'iris_id,year' })
+    .select()
+    .single()
+  if (error) throw error
+  return dbToFlowering(data)
+}
+
+// ─── Evaluations ──────────────────────────────────────────────
+export type EvalRow = EvalRecord & { irisId: string }
+
+export function dbToEval(row: any): EvalRow {
+  return {
+    irisId: row.iris_id,
+    id: row.id,
+    year: row.eval_year ?? undefined,
+    form: row.form ?? undefined,
+    colour: row.colour ?? undefined,
+    substance: row.substance ?? undefined,
+    branching: row.branching ?? undefined,
+    vigour: row.vigour ?? undefined,
+    avg: row.average ?? undefined,
+    verdict: row.verdict ?? undefined,
+    comments: row.comments ?? undefined,
+    date: fmtDate(row.evaluated_at),
+  }
+}
+
+export interface NewEval {
+  irisId: string; year?: number
+  form?: number; colour?: number; substance?: number; branching?: number; vigour?: number
+  avg?: number; verdict?: string; comments?: string
+}
+
+export async function fetchEvaluations(supabase: SupabaseClient, userId: string): Promise<EvalRow[]> {
+  const { data, error } = await supabase
+    .from('evaluations')
+    .select('*')
+    .eq('user_id', userId)
+    .order('evaluated_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []).map(dbToEval)
+}
+
+export async function insertEvaluation(supabase: SupabaseClient, userId: string, input: NewEval): Promise<EvalRow> {
+  const { data, error } = await supabase
+    .from('evaluations')
+    .insert({
+      user_id: userId,
+      iris_id: input.irisId,
+      eval_year: input.year ?? new Date().getFullYear(),
+      form: input.form ?? null,
+      colour: input.colour ?? null,
+      substance: input.substance ?? null,
+      branching: input.branching ?? null,
+      vigour: input.vigour ?? null,
+      average: input.avg ?? null,
+      verdict: input.verdict || null,
+      comments: input.comments || null,
+    })
+    .select()
+    .single()
+  if (error) throw error
+  return dbToEval(data)
 }

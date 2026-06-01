@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { Icon } from '@/components/ui/icon'
 import { Sheet, btnReset, SectionLabel } from '@/components/ui/shared'
+import { useData } from '@/lib/data-context'
 import type { Iris } from '@/types'
 
 interface RecordFloweringFlowProps {
@@ -38,18 +39,40 @@ function todayStr() {
 }
 
 export function RecordFloweringFlow({ open, iris, onClose, onSaved }: RecordFloweringFlowProps) {
+  const { addFlowering } = useData()
   const [date, setDate] = useState(todayStr())
   const [notes, setNotes] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
   function handleClose() {
     setDate(todayStr())
     setNotes('')
+    setSaving(false)
+    setError('')
     onClose()
   }
 
-  function handleSave() {
-    onSaved(date)
-    handleClose()
+  async function handleSave() {
+    if (saving || !iris) return
+    setSaving(true)
+    setError('')
+    try {
+      const [y, m, d] = date.split('-')
+      const displayDate = y ? `${d}/${m}/${y}` : date
+      await addFlowering({
+        irisId: iris.id,
+        year: y ? Number(y) : new Date().getFullYear(),
+        first: displayDate,
+        notes: notes.trim() || undefined,
+      })
+      onSaved(displayDate)
+      handleClose()
+    } catch (e) {
+      console.error(e)
+      setError('Could not save. Please try again.')
+      setSaving(false)
+    }
   }
 
   return (
@@ -123,8 +146,13 @@ export function RecordFloweringFlow({ open, iris, onClose, onSaved }: RecordFlow
           <Icon name="chevron" size={18} stroke="var(--ink-4)" style={{ marginLeft: 'auto' }} />
         </button>
 
+        {error && (
+          <div style={{ padding: 12, background: 'var(--rose-bg)', border: '1px solid var(--rose-line)', borderRadius: 12, fontSize: 13.5, color: 'var(--rose)' }}>{error}</div>
+        )}
+
         <button
           onClick={handleSave}
+          disabled={saving}
           style={{
             ...btnReset,
             width: '100%',
@@ -134,7 +162,7 @@ export function RecordFloweringFlow({ open, iris, onClose, onSaved }: RecordFlow
             color: '#fff',
             fontSize: 15.5,
             fontWeight: 600,
-            cursor: 'pointer',
+            cursor: saving ? 'default' : 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -143,7 +171,7 @@ export function RecordFloweringFlow({ open, iris, onClose, onSaved }: RecordFlow
           }}
         >
           <Icon name="flower" size={18} stroke="#fff" sw={2} />
-          Record Flowering
+          {saving ? 'Saving…' : 'Record Flowering'}
         </button>
       </div>
     </Sheet>

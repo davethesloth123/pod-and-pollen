@@ -1,8 +1,8 @@
 'use client'
 import { useState } from 'react'
 import { Icon } from '@/components/ui/icon'
-import { Sheet, btnReset, SectionLabel } from '@/components/ui/shared'
-import { irises } from '@/lib/data'
+import { Sheet, btnReset } from '@/components/ui/shared'
+import { useData } from '@/lib/data-context'
 import type { Iris } from '@/types'
 
 interface QuickNoteFlowProps {
@@ -48,11 +48,14 @@ function todayStr() {
 }
 
 export function QuickNoteFlow({ open, iris, onClose, onSaved }: QuickNoteFlowProps) {
+  const { irises, addNote } = useData()
   const [noteType, setNoteType] = useState('Observation')
   const [body, setBody] = useState('')
   const [date, setDate] = useState(todayStr())
   const [selectedIris, setSelectedIris] = useState<string>(iris?.name || '')
   const [irisSearch, setIrisSearch] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
   const irisNames = irises.map(i => i.name)
   const filteredIrises = irisSearch
@@ -65,15 +68,29 @@ export function QuickNoteFlow({ open, iris, onClose, onSaved }: QuickNoteFlowPro
     setDate(todayStr())
     setSelectedIris(iris?.name || '')
     setIrisSearch('')
+    setSaving(false)
+    setError('')
     onClose()
   }
 
-  function handleSave() {
-    onSaved(noteType)
-    handleClose()
+  async function handleSave() {
+    if (saving || !body.trim()) return
+    const target = iris ?? irises.find(i => i.name === selectedIris)
+    if (!target) { setError('Pick an iris to attach this note to.'); return }
+    setSaving(true)
+    setError('')
+    try {
+      await addNote({ irisId: target.id, type: noteType, body: body.trim(), date })
+      onSaved(noteType)
+      handleClose()
+    } catch (e) {
+      console.error(e)
+      setError('Could not save. Please try again.')
+      setSaving(false)
+    }
   }
 
-  const canSave = body.trim().length > 0
+  const canSave = body.trim().length > 0 && !saving
 
   return (
     <Sheet open={open} onClose={handleClose} title="Quick Note">
@@ -167,6 +184,10 @@ export function QuickNoteFlow({ open, iris, onClose, onSaved }: QuickNoteFlowPro
           />
         </div>
 
+        {error && (
+          <div style={{ padding: 12, background: 'var(--rose-bg)', border: '1px solid var(--rose-line)', borderRadius: 12, fontSize: 13.5, color: 'var(--rose)' }}>{error}</div>
+        )}
+
         <button
           onClick={handleSave}
           disabled={!canSave}
@@ -187,7 +208,7 @@ export function QuickNoteFlow({ open, iris, onClose, onSaved }: QuickNoteFlowPro
           }}
         >
           <Icon name="note" size={18} stroke="#fff" sw={2} />
-          Save Note
+          {saving ? 'Saving…' : 'Save Note'}
         </button>
       </div>
     </Sheet>

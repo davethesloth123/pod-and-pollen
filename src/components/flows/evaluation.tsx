@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { Icon } from '@/components/ui/icon'
 import { Sheet, btnReset, SectionLabel, RatingDots } from '@/components/ui/shared'
+import { useData } from '@/lib/data-context'
 import type { Iris } from '@/types'
 
 interface EvaluationFlowProps {
@@ -50,11 +51,14 @@ const inputStyle: React.CSSProperties = {
 }
 
 export function EvaluationFlow({ open, iris, onClose, onSaved }: EvaluationFlowProps) {
+  const { addEvaluation } = useData()
   const [ratings, setRatings] = useState<Record<string, number>>({
     form: 0, colour: 0, branching: 0, habit: 0, vigour: 0, overall: 0,
   })
   const [seasonNotes, setSeasonNotes] = useState('')
   const [outcome, setOutcome] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
   function setRating(id: string, v: number) {
     setRatings(r => ({ ...r, [id]: v }))
@@ -70,15 +74,38 @@ export function EvaluationFlow({ open, iris, onClose, onSaved }: EvaluationFlowP
     setRatings({ form: 0, colour: 0, branching: 0, habit: 0, vigour: 0, overall: 0 })
     setSeasonNotes('')
     setOutcome('')
+    setSaving(false)
+    setError('')
     onClose()
   }
 
-  function handleSave() {
-    onSaved({ avg: calcAvg() })
-    handleClose()
+  async function handleSave() {
+    if (saving || !iris) return
+    const a = calcAvg()
+    setSaving(true)
+    setError('')
+    try {
+      await addEvaluation({
+        irisId: iris.id,
+        form: ratings.form || undefined,
+        colour: ratings.colour || undefined,
+        substance: ratings.habit || undefined,
+        branching: ratings.branching || undefined,
+        vigour: ratings.vigour || undefined,
+        avg: a,
+        verdict: outcome || undefined,
+        comments: seasonNotes.trim() || undefined,
+      })
+      onSaved({ avg: a })
+      handleClose()
+    } catch (e) {
+      console.error(e)
+      setError('Could not save. Please try again.')
+      setSaving(false)
+    }
   }
 
-  const hasAny = Object.values(ratings).some(v => v > 0)
+  const hasAny = Object.values(ratings).some(v => v > 0) && !saving
   const avg = calcAvg()
 
   return (
@@ -171,6 +198,10 @@ export function EvaluationFlow({ open, iris, onClose, onSaved }: EvaluationFlowP
           </div>
         </div>
 
+        {error && (
+          <div style={{ padding: 12, background: 'var(--rose-bg)', border: '1px solid var(--rose-line)', borderRadius: 12, fontSize: 13.5, color: 'var(--rose)' }}>{error}</div>
+        )}
+
         <button
           onClick={handleSave}
           disabled={!hasAny}
@@ -191,7 +222,7 @@ export function EvaluationFlow({ open, iris, onClose, onSaved }: EvaluationFlowP
           }}
         >
           <Icon name="star" size={18} stroke="#fff" sw={2} />
-          Save Evaluation{avg !== undefined ? ` · ${avg} / 5` : ''}
+          {saving ? 'Saving…' : `Save Evaluation${avg !== undefined ? ` · ${avg} / 5` : ''}`}
         </button>
       </div>
     </Sheet>
