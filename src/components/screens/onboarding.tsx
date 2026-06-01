@@ -104,7 +104,6 @@ function StepWelcome() {
 // ─── Step 1: Plant type (irises today; built in for future genera) ──
 function StepPlant() {
   const iris = PLANT_TYPES.find(p => p.k === 'iris')!
-  const pal = PAL[iris.pal]
   return (
     <div>
       <div className="h-display" style={{ fontWeight: 600, fontSize: 28, color: 'var(--ink)', lineHeight: 1.1, marginBottom: 10 }}>A field notebook for irises</div>
@@ -112,9 +111,9 @@ function StepPlant() {
         Pod &amp; Pollen is built around the iris breeding lifecycle — varieties, parents, crosses, seedlings, and first flowers, all connected.
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 16, borderRadius: 16, background: 'var(--accent-bg)', border: '1.5px solid var(--accent)', boxShadow: '0 4px 14px var(--accent-shadow)' }}>
-        <div style={{ width: 60, height: 60, borderRadius: 14, overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
-          <IrisBloom s={pal.s} f={pal.f} beard={pal.beard} r={14} />
-        </div>
+        <span style={{ width: 60, height: 60, borderRadius: 14, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px var(--accent-shadow)' }}>
+          <Icon name="iris" size={32} stroke="#fff" sw={1.9} />
+        </span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="h-display" style={{ fontWeight: 600, fontSize: 19, color: 'var(--ink)' }}>Irises</div>
           <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 3, lineHeight: 1.4 }}>{iris.blurb}</div>
