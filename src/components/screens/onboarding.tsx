@@ -217,7 +217,7 @@ function StepGarden({ value, onChange }: { value: string; onChange: (v: string) 
     <div>
       <div className="h-display" style={{ fontWeight: 600, fontSize: 28, color: 'var(--ink)', lineHeight: 1.1, marginBottom: 10 }}>Where do you grow?</div>
       <div style={{ fontSize: 14.5, color: 'var(--ink-3)', lineHeight: 1.5, marginBottom: 22 }}>
-        Add your first garden location. Beds, borders, pots, greenhouse — whatever you use. You can add more later.
+        Add your first growing location. Beds, borders, pots, greenhouse — whatever you use. You can add more later.
       </div>
       <input
         value={value}
