@@ -290,7 +290,7 @@ function FavWidget({ go }: { go: (view: string | -1, params?: Record<string, any
       {favs.length === 0 ? (
         <EmptyHint icon="star" title="No favourites yet" body="Star irises to build your favourites list." />
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12 }}>
           {favs.map(iris => (
             <IrisCard key={iris.id} iris={iris} onClick={() => go('detail', { id: iris.id })} />
           ))}
@@ -404,7 +404,7 @@ function PhotoWallWidget({ go }: { go: (view: string | -1, params?: Record<strin
       {photos.length === 0 && blooms.length === 0 ? (
         <EmptyHint icon="camera" title="No photos yet" body="Add photos to your irises to build your gallery." />
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 6 }}>
           {photos.length > 0
             ? photos.map(({ iris, p, key }) => (
                 <button
