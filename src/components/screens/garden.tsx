@@ -206,7 +206,7 @@ export function GardenScreen({ go, wide, openAdd, openLocation, toast }: {
   go: (screen: string, params?: Record<string, unknown>) => void
   wide?: boolean
   openAdd?: () => void
-  openLocation?: (id: string) => void
+  openLocation?: () => void
   toast?: (msg: string) => void
 }) {
   const { locations } = useData()
@@ -266,7 +266,7 @@ export function GardenScreen({ go, wide, openAdd, openLocation, toast }: {
       {/* Add location button */}
       <div style={{ padding: '16px 18px 8px' }}>
         <button
-          onClick={openAdd}
+          onClick={openLocation}
           style={{
             ...btnReset, cursor: 'pointer', width: '100%',
             border: '1.5px dashed var(--line-2)', borderRadius: 16, padding: '15px',
