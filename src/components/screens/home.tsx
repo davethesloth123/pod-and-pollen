@@ -14,6 +14,7 @@ interface HomeScreenProps {
   openAdd: () => void
   openNote: () => void
   openPhoto: () => void
+  userName?: string
 }
 
 // ─── Shared widget pieces ─────────────────────────────────────
@@ -600,13 +601,13 @@ function WidgetDashboard({ widgets, go, wide, openAdd, openNote, openPhoto }: {
 
 // ─── Home screen ──────────────────────────────────────────────
 
-export function HomeScreen({ go, wide, widgets, openAdd, openNote, openPhoto }: HomeScreenProps) {
+export function HomeScreen({ go, wide, widgets, openAdd, openNote, openPhoto, userName }: HomeScreenProps) {
   const greeting = (() => {
     const h = new Date().getHours()
     return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'
   })()
   const today = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
-  const firstName = 'there' // will be replaced with real user name later
+  const firstName = userName?.trim().split(' ')[0] || 'there'
 
   return (
     <div style={{ padding: '10px 18px 32px' }}>

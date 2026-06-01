@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { BottomNav } from '@/components/layout/bottom-nav'
+import { DesktopSidebar } from '@/components/layout/desktop-sidebar'
 import { Icon } from '@/components/ui/icon'
 import { DEFAULT_WIDGETS, WIDGETS } from '@/lib/data'
 import { HomeScreen } from '@/components/screens/home'
@@ -230,10 +231,34 @@ function SettingsHeader({ onBack }: SettingsHeaderProps) {
   )
 }
 
+// ─── Viewport ─────────────────────────────────────────────────
+// Desktop layout (sidebar) kicks in at >= 1024px. SSR-safe: starts mobile,
+// upgrades after mount.
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)')
+    const update = () => setIsDesktop(mq.matches)
+    update()
+    mq.addEventListener('change', update)
+    return () => mq.removeEventListener('change', update)
+  }, [])
+  return isDesktop
+}
+
+// Desktop page titles for the main content column
+const DESKTOP_TITLES: Record<string, { title: string; sub?: string }> = {
+  collection: { title: 'Collection' },
+  crosses:    { title: 'Crosses', sub: 'Breeding programme' },
+  garden:     { title: 'Your garden' },
+  settings:   { title: 'Settings' },
+}
+
 // ─── App Shell ────────────────────────────────────────────────
 export function AppShell() {
   const router = useRouter()
   const supabase = createClient()
+  const isDesktop = useIsDesktop()
 
   // ── Core state ──────────────────────────────────────────────
   const [tab, setTab] = useState<Tab>('home')
@@ -340,7 +365,7 @@ export function AppShell() {
 
   // ── Screen renderer ──────────────────────────────────────────
   const renderScreen = () => {
-    const commonProps = { go, wide: false }
+    const commonProps = { go, wide: isDesktop }
 
     switch (view) {
       case 'home':
@@ -351,6 +376,7 @@ export function AppShell() {
             openNote={openNote}
             openPhoto={openPhoto}
             openAdd={openAdd}
+            userName={user?.user_metadata?.name}
           />
         )
       case 'collection':
@@ -460,45 +486,17 @@ export function AppShell() {
     }
   }
 
-  // ── Header logic ─────────────────────────────────────────────
+  // ── Header logic (mobile) ────────────────────────────────────
   const showHeader = stack.length === 0 && view !== 'settings'
   const showSettingsHeader = view === 'settings'
 
-  return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'var(--bg)',
-      display: 'flex',
-      flexDirection: 'column',
-      position: 'relative',
-    }}>
-      {/* Connectivity banner */}
-      <ConnectivityBanner />
+  // ── Desktop title for the content column ─────────────────────
+  const desktopTitle =
+    stack.length === 0 ? DESKTOP_TITLES[tab] : (view === 'settings' ? DESKTOP_TITLES.settings : undefined)
 
-      {/* App header — tab views only */}
-      {showHeader && (
-        <AppHeader
-          tab={tab}
-          user={user}
-          onSettings={() => go('settings')}
-        />
-      )}
-
-      {/* Settings header */}
-      {showSettingsHeader && (
-        <SettingsHeader onBack={() => go(-1)} />
-      )}
-
-      {/* Scrollable content */}
-      <div style={{ flex: 1, overflow: 'auto', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
-        {renderScreen()}
-      </div>
-
-      {/* Bottom nav — always shown */}
-      <BottomNav tab={tab} onTab={onTab} onAdd={openAdd} />
-
-      {/* ── Sheets ── */}
-
+  // ── Overlays shared by both layouts ──────────────────────────
+  const overlays = (
+    <>
       {/* Add iris */}
       <AddIrisFlow
         open={sheet?.kind === 'add'}
@@ -591,6 +589,51 @@ export function AppShell() {
 
       {/* Toast */}
       <Toast msg={toastMsg} />
+    </>
+  )
+
+  // ── Desktop layout (sidebar) ─────────────────────────────────
+  if (isDesktop) {
+    return (
+      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg)', overflow: 'hidden' }}>
+        <ConnectivityBanner />
+        <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+          <DesktopSidebar
+            tab={tab}
+            activeView={view}
+            onTab={onTab}
+            onAdd={openAdd}
+            onSettings={() => go('settings')}
+            user={user}
+          />
+          <main style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+            <div style={{ maxWidth: 1020, margin: '0 auto', padding: '0 16px 40px' }}>
+              {desktopTitle && (
+                <div style={{ padding: '26px 4px 10px' }}>
+                  <div style={{ fontFamily: 'Bricolage Grotesque, system-ui, sans-serif', fontWeight: 600, fontSize: 30, color: 'var(--ink)', lineHeight: 1.1 }}>{desktopTitle.title}</div>
+                  {desktopTitle.sub && <div style={{ fontSize: 14, color: 'var(--ink-3)', marginTop: 3 }}>{desktopTitle.sub}</div>}
+                </div>
+              )}
+              {renderScreen()}
+            </div>
+          </main>
+        </div>
+        {overlays}
+      </div>
+    )
+  }
+
+  // ── Mobile layout (bottom nav) ───────────────────────────────
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+      <ConnectivityBanner />
+      {showHeader && <AppHeader tab={tab} user={user} onSettings={() => go('settings')} />}
+      {showSettingsHeader && <SettingsHeader onBack={() => go(-1)} />}
+      <div style={{ flex: 1, overflow: 'auto', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
+        {renderScreen()}
+      </div>
+      <BottomNav tab={tab} onTab={onTab} onAdd={openAdd} />
+      {overlays}
     </div>
   )
 }
