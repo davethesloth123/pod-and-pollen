@@ -12,7 +12,7 @@ interface AddIrisFlowProps {
   presetCross?: any
 }
 
-const KINDS = ['Variety', 'Seedling', 'Species', 'Other']
+const KINDS = ['Variety', 'Seedling']
 const CLASSIFICATIONS = [
   'Tall Bearded',
   'Intermediate Bearded',
@@ -22,6 +22,20 @@ const CLASSIFICATIONS = [
   'Miniature Dwarf Bearded',
   'Arilbred',
   'Species',
+]
+const COLOUR_TYPES = [
+  'Self',
+  'Bicolour',
+  'Bitone',
+  'Reverse Bitone',
+  'Plicata',
+  'Luminata',
+  'Neglecta',
+  'Blend',
+  'Amoena',
+  'Broken',
+  'Line and Speckles',
+  'Space Age',
 ]
 
 const inputStyle: React.CSSProperties = {
@@ -74,6 +88,7 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross }: AddIrisFlow
   const [name, setName] = useState('')
   const [kind, setKind] = useState('Variety')
   const [cls, setCls] = useState('Tall Bearded')
+  const [colourType, setColourType] = useState('Self')
   const [podParent, setPodParent] = useState(presetCross?.pod || '')
   const [pollenParent, setPollenParent] = useState(presetCross?.pollen || '')
   const [podSearch, setPodSearch] = useState('')
@@ -96,6 +111,7 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross }: AddIrisFlow
     setName('')
     setKind('Variety')
     setCls('Tall Bearded')
+    setColourType('Self')
     setPodParent('')
     setPollenParent('')
     setPodSearch('')
@@ -121,7 +137,7 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross }: AddIrisFlow
         <input style={inputStyle} placeholder="e.g. Dusky Challenger" value={name} onChange={e => setName(e.target.value)} autoFocus />
       </div>
       <div>
-        <label style={labelStyle}>KIND</label>
+        <label style={labelStyle}>RECORD TYPE</label>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {KINDS.map(k => (
             <button key={k} onClick={() => setKind(k)} style={{
@@ -142,6 +158,17 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross }: AddIrisFlow
           <Icon name="chevron" size={16} stroke="var(--ink-3)" style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%) rotate(90deg)', pointerEvents: 'none' }} />
         </div>
       </div>
+      {kind === 'Variety' && (
+        <div>
+          <label style={labelStyle}>COLOUR TYPE</label>
+          <div style={{ position: 'relative' }}>
+            <select style={selectStyle} value={colourType} onChange={e => setColourType(e.target.value)}>
+              {COLOUR_TYPES.map(c => (<option key={c} value={c}>{c}</option>))}
+            </select>
+            <Icon name="chevron" size={16} stroke="var(--ink-3)" style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%) rotate(90deg)', pointerEvents: 'none' }} />
+          </div>
+        </div>
+      )}
     </>
   )
 
