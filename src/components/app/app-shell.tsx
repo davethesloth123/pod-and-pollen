@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { BottomNav } from '@/components/layout/bottom-nav'
 import { DesktopSidebar } from '@/components/layout/desktop-sidebar'
+import { useIsDesktop } from '@/lib/use-is-desktop'
 import { Icon } from '@/components/ui/icon'
 import { DEFAULT_WIDGETS, WIDGETS } from '@/lib/data'
 import { HomeScreen } from '@/components/screens/home'
@@ -229,21 +230,6 @@ function SettingsHeader({ onBack }: SettingsHeaderProps) {
       </span>
     </div>
   )
-}
-
-// ─── Viewport ─────────────────────────────────────────────────
-// Desktop layout (sidebar) kicks in at >= 1024px. SSR-safe: starts mobile,
-// upgrades after mount.
-function useIsDesktop() {
-  const [isDesktop, setIsDesktop] = useState(false)
-  useEffect(() => {
-    const mq = window.matchMedia('(min-width: 1024px)')
-    const update = () => setIsDesktop(mq.matches)
-    update()
-    mq.addEventListener('change', update)
-    return () => mq.removeEventListener('change', update)
-  }, [])
-  return isDesktop
 }
 
 // Desktop page titles for the main content column

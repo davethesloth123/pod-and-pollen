@@ -2,6 +2,7 @@
 import { Icon } from './icon'
 import { IrisBloom } from './iris-bloom'
 import { PAL } from '@/lib/data'
+import { useIsDesktop } from '@/lib/use-is-desktop'
 import type { Iris } from '@/types'
 
 // ── Shared style helpers ─────────────────────────────────────
@@ -202,26 +203,48 @@ export function Field({ label, value }: { label: string; value?: string | number
 export function Sheet({ open, onClose, children, title, height = 'auto' }: {
   open: boolean; onClose: () => void; children: React.ReactNode; title?: string; height?: string | number
 }) {
+  const isDesktop = useIsDesktop()
   if (!open) return null
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 80, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
-      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(28,15,46,0.4)', animation: 'blFade .2s ease' }} />
-      <div style={{
+
+  // Desktop: centred modal dialog. Mobile: bottom sheet.
+  const panelStyle: React.CSSProperties = isDesktop
+    ? {
+        position: 'relative', background: 'var(--bg)', borderRadius: 20,
+        maxHeight: '88vh', maxWidth: 560, width: '100%', display: 'flex', flexDirection: 'column',
+        boxShadow: '0 24px 70px rgba(0,0,0,0.32)', animation: 'blFade .18s ease', overflow: 'hidden',
+      }
+    : {
         position: 'relative', background: 'var(--bg)', borderRadius: '26px 26px 0 0',
         maxHeight: '92%', height, display: 'flex', flexDirection: 'column',
         boxShadow: '0 -10px 40px rgba(0,0,0,0.25)', animation: 'blSheet .26s cubic-bezier(.2,.8,.2,1)',
         maxWidth: 640, width: '100%', margin: '0 auto',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px 0 4px' }}>
-          <span style={{ width: 40, height: 5, borderRadius: 999, background: 'var(--line-2)' }} />
-        </div>
-        {title && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 18px 12px', borderBottom: '1px solid var(--line)' }}>
-            <span style={{ fontFamily: 'Bricolage Grotesque, system-ui, sans-serif', fontWeight: 600, fontSize: 20, color: 'var(--ink)' }}>{title}</span>
-            <button onClick={onClose} style={{ ...btnReset, cursor: 'pointer' }}>
+      }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 80, display: 'flex', flexDirection: 'column', justifyContent: isDesktop ? 'center' : 'flex-end', alignItems: isDesktop ? 'center' : undefined, padding: isDesktop ? 24 : 0, boxSizing: 'border-box' }}>
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(28,15,46,0.4)', animation: 'blFade .2s ease' }} />
+      <div style={panelStyle}>
+        {isDesktop ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px 14px', borderBottom: '1px solid var(--line)' }}>
+            <span style={{ fontFamily: 'Bricolage Grotesque, system-ui, sans-serif', fontWeight: 600, fontSize: 20, color: 'var(--ink)' }}>{title || ''}</span>
+            <button onClick={onClose} style={{ ...btnReset, cursor: 'pointer' }} aria-label="Close">
               <span style={iconBtn}><Icon name="x" size={21} stroke="var(--ink-2)" /></span>
             </button>
           </div>
+        ) : (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px 0 4px' }}>
+              <span style={{ width: 40, height: 5, borderRadius: 999, background: 'var(--line-2)' }} />
+            </div>
+            {title && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 18px 12px', borderBottom: '1px solid var(--line)' }}>
+                <span style={{ fontFamily: 'Bricolage Grotesque, system-ui, sans-serif', fontWeight: 600, fontSize: 20, color: 'var(--ink)' }}>{title}</span>
+                <button onClick={onClose} style={{ ...btnReset, cursor: 'pointer' }}>
+                  <span style={iconBtn}><Icon name="x" size={21} stroke="var(--ink-2)" /></span>
+                </button>
+              </div>
+            )}
+          </>
         )}
         <div style={{ overflow: 'auto', flex: 1 }}>{children}</div>
       </div>
@@ -346,12 +369,16 @@ export function SetRow({ icon, label, sub, onClick, value, danger, isLast }: {
 
 // ── Toast ─────────────────────────────────────────────────────
 export function Toast({ msg }: { msg: string }) {
+  const isDesktop = useIsDesktop()
   if (!msg) return null
+  const pos: React.CSSProperties = isDesktop
+    ? { right: 24, bottom: 24 }
+    : { bottom: 96, left: '50%', transform: 'translateX(-50%)', maxWidth: 'calc(100% - 32px)' }
   return (
-    <div style={{ position: 'fixed', bottom: 96, left: '50%', transform: 'translateX(-50%)', zIndex: 90,
+    <div style={{ position: 'fixed', zIndex: 90, ...pos,
       background: 'var(--ink)', color: '#fff', padding: '13px 20px', borderRadius: 14, fontSize: 14.5, fontWeight: 500,
       boxShadow: '0 8px 24px rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', gap: 9, whiteSpace: 'nowrap',
-      animation: 'blToast .25s ease', maxWidth: 'calc(100% - 32px)' }}>
+      animation: 'blToast .25s ease' }}>
       <Icon name="check" size={18} stroke="#7ee0a8" sw={2.4} />{msg}
     </div>
   )
