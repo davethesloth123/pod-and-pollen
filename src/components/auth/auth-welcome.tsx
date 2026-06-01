@@ -1,0 +1,34 @@
+'use client'
+import { IrisBloom } from '@/components/ui/iris-bloom'
+import { PAL } from '@/lib/data'
+import { AuthBg, AuthPrimary, AuthSecondary } from './auth-bg'
+
+export function AuthWelcome({ onSignUp, onSignIn }: { onSignUp: () => void; onSignIn: () => void }) {
+  return (
+    <AuthBg>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '60px 28px 36px', textAlign: 'center' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+          <div style={{ position: 'relative', width: 130, height: 130, marginBottom: 28 }}>
+            <IrisBloom s={PAL.deepPurple.s} f={PAL.deepPurple.f} beard={PAL.deepPurple.beard} r={26} />
+          </div>
+          <div className="h-display" style={{ fontSize: 46, color: 'var(--ink)', lineHeight: 0.96, letterSpacing: -0.02, marginBottom: 16 }}>
+            Pod <span style={{ color: 'var(--accent)', fontStyle: 'italic', fontWeight: 500 }}>&</span> Pollen
+          </div>
+          <div style={{ fontSize: 16, color: 'var(--ink-2)', lineHeight: 1.5, maxWidth: 320, marginBottom: 8 }}>
+            A field notebook for serious gardeners.
+          </div>
+          <div style={{ fontSize: 13.5, color: 'var(--ink-3)', maxWidth: 300 }}>
+            Track plants, parents, crosses, seedlings, and first flowers — all connected.
+          </div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <AuthPrimary onClick={onSignUp}>Create your account</AuthPrimary>
+          <AuthSecondary onClick={onSignIn}>I already have an account</AuthSecondary>
+          <div style={{ fontSize: 11.5, color: 'var(--ink-4)', marginTop: 12, lineHeight: 1.5 }}>
+            By continuing you agree to our <span style={{ color: 'var(--accent)', fontWeight: 600 }}>terms</span> and <span style={{ color: 'var(--accent)', fontWeight: 600 }}>privacy</span>.
+          </div>
+        </div>
+      </div>
+    </AuthBg>
+  )
+}

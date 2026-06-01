@@ -1,0 +1,36 @@
+# deps
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/releases
+!.yarn/versions
+
+# next
+/.next/
+/out/
+
+# build
+/dist/
+
+# env files — never commit real secrets
+.env*.local
+.env.staging
+.env.production
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# editor
+.DS_Store
+*.pem
