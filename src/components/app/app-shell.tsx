@@ -585,7 +585,7 @@ export function AppShell() {
       {/* Onboarding overlay */}
       {!onboardingDone && (
         <OnboardingFlow
-          onDone={handleOnboardingComplete}
+          onComplete={handleOnboardingComplete}
         />
       )}
 

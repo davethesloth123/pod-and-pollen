@@ -2,415 +2,254 @@
 import { useState } from 'react'
 import { Icon } from '@/components/ui/icon'
 import { IrisBloom } from '@/components/ui/iris-bloom'
-import { SectionLabel, btnReset } from '@/components/ui/shared'
-import { DEFAULT_WIDGETS, WIDGETS, PAL } from '@/lib/data'
-import { createClient } from '@/lib/supabase/client'
-import { recommendWidgets } from '@/lib/data'
+import { btnReset } from '@/components/ui/shared'
+import { PAL, PLANT_TYPES, getGoals, recommendWidgets, DEFAULT_WIDGETS } from '@/lib/data'
 
-// ─── Types ────────────────────────────────────────────────────
 interface OnboardingFlowProps {
-  onDone?: (data: any) => void
   onComplete?: (recommendedWidgets?: string[]) => void
+  onDone?: (data: unknown) => void
 }
 
-// ─── Option card (multi-select) ───────────────────────────────
-function OptionCard({ label, selected, onToggle }: { label: string; selected: boolean; onToggle: () => void }) {
-  return (
-    <button
-      onClick={onToggle}
-      style={{
-        ...btnReset,
-        cursor: 'pointer',
-        padding: '13px 18px',
-        borderRadius: 14,
-        background: selected ? 'var(--accent-bg)' : 'var(--surface)',
-        border: `1.5px solid ${selected ? 'var(--accent)' : 'var(--line)'}`,
-        color: selected ? 'var(--accent)' : 'var(--ink)',
-        fontWeight: selected ? 600 : 500,
-        fontSize: 15,
-        textAlign: 'left',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        transition: 'all .15s',
-      }}
-    >
-      <span style={{
-        width: 22, height: 22, borderRadius: 999, flexShrink: 0,
-        border: `2px solid ${selected ? 'var(--accent)' : 'var(--line-2)'}`,
-        background: selected ? 'var(--accent)' : 'transparent',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        {selected && <Icon name="check" size={13} stroke="#fff" sw={2.6} />}
-      </span>
-      {label}
-    </button>
-  )
-}
+const TOTAL_STEPS = 5 // welcome, plant, matters, gardenType, garden
 
-// ─── Single-select card ───────────────────────────────────────
-function SingleCard({ label, selected, onSelect }: { label: string; selected: boolean; onSelect: () => void }) {
-  return (
-    <button
-      onClick={onSelect}
-      style={{
-        ...btnReset,
-        cursor: 'pointer',
-        padding: '13px 18px',
-        borderRadius: 14,
-        background: selected ? 'var(--accent-bg)' : 'var(--surface)',
-        border: `1.5px solid ${selected ? 'var(--accent)' : 'var(--line)'}`,
-        color: selected ? 'var(--accent)' : 'var(--ink)',
-        fontWeight: selected ? 600 : 500,
-        fontSize: 15,
-        textAlign: 'left',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        transition: 'all .15s',
-      }}
-    >
-      <span style={{
-        width: 22, height: 22, borderRadius: 999, flexShrink: 0,
-        border: `2px solid ${selected ? 'var(--accent)' : 'var(--line-2)'}`,
-        background: selected ? 'var(--accent)' : 'transparent',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        {selected && <span style={{ width: 8, height: 8, borderRadius: 999, background: '#fff' }} />}
-      </span>
-      {label}
-    </button>
-  )
-}
-
-// ─── Progress bar (4 segments) ────────────────────────────────
-function ProgressBar({ step, total }: { step: number; total: number }) {
-  return (
-    <div style={{ display: 'flex', gap: 5 }}>
-      {Array.from({ length: total }).map((_, i) => (
-        <div
-          key={i}
-          style={{
-            flex: 1, height: 4, borderRadius: 999,
-            background: i < step ? 'var(--accent)' : 'var(--line-2)',
-            transition: 'background .25s',
-          }}
-        />
-      ))}
-    </div>
-  )
-}
-
-// ─── OnboardingFlow ───────────────────────────────────────────
-export function OnboardingFlow({ onDone, onComplete }: OnboardingFlowProps) {
+export function OnboardingFlow({ onComplete, onDone }: OnboardingFlowProps) {
   const [step, setStep] = useState(0)
-  const [plantTypes, setPlantTypes] = useState<string[]>([])
   const [matters, setMatters] = useState<string[]>([])
   const [gardenType, setGardenType] = useState('')
   const [gardenName, setGardenName] = useState('')
 
-  const PLANT_TYPES = [
-    'Tall Bearded',
-    'Intermediate Bearded',
-    'Species & Wild types',
-    'Other irises',
-    'Mixed collection',
-  ]
-
-  const MATTERS = [
-    'Colour combinations',
-    'Tracking crosses',
-    'Monitoring seedlings',
-    'Photo journal',
-    'Garden planning',
-  ]
-
-  const GARDEN_TYPES = [
-    'Open beds',
-    'Mixed borders',
-    'Greenhouse',
-    'Pots & containers',
-    'Show garden',
-    'Mixed',
-  ]
-
-  const togglePlantType = (v: string) =>
-    setPlantTypes(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v])
-
-  const toggleMatter = (v: string) =>
-    setMatters(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v])
-
-  const handleDone = () => {
-    const data = { plantTypes, matters, gardenType, gardenName }
-
-    const matterToGoalKey: Record<string, string> = {
-      'Colour combinations': 'collect',
-      'Tracking crosses': 'breed',
-      'Monitoring seedlings': 'breed',
-      'Photo journal': 'track',
-      'Garden planning': 'map',
-    }
-    const goalKeys = matters.map(m => matterToGoalKey[m]).filter(Boolean)
-    const recommended = recommendWidgets({ matters: goalKeys, gardenType })
-
-    if (onComplete) onComplete(recommended)
-    if (onDone) onDone(data)
+  // Complete onboarding, building the dashboard from the chosen answers
+  const finish = (mattersKeys = matters, gType = gardenType) => {
+    const recommended = recommendWidgets({ matters: mattersKeys, gardenType: gType || 'mixed', frequency: 'weekly' })
+    onComplete?.(recommended)
+    onDone?.({ matters: mattersKeys, gardenType: gType, gardenName })
   }
 
-  const canNext = () => {
-    if (step === 1) return plantTypes.length > 0
-    if (step === 2) return matters.length > 0
-    if (step === 3) return gardenType !== ''
-    return true
+  // Exit with a sensible default dashboard (no personalisation)
+  const useDefault = () => {
+    onComplete?.(DEFAULT_WIDGETS)
+    onDone?.({ matters: [], gardenType: '', gardenName })
   }
 
-  const palette = PAL.deepPurple
+  const next = () => {
+    if (step < TOTAL_STEPS - 1) setStep(step + 1)
+    else finish()
+  }
+  const back = () => step > 0 && setStep(step - 1)
+
+  // Top-right skip behaviour by step:
+  //  0,1 → "Skip" exits onboarding entirely (default dashboard)
+  //  2,3 → "Use default" exits with default widgets
+  //  4   → "Skip" finishes with whatever's set so far
+  const isPersonalization = step === 2 || step === 3
+  const topSkip = isPersonalization ? useDefault : (step === 4 ? () => finish() : useDefault)
+  const topSkipLabel = isPersonalization ? 'Use default' : 'Skip'
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, background: 'var(--bg)', zIndex: 100,
-      display: 'flex', flexDirection: 'column', overflowY: 'auto',
-      animation: 'blFade .3s ease',
-    }}>
-
-      {/* ── Step 0: Welcome ── */}
-      {step === 0 && (
-        <div style={{
-          flex: 1, display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center',
-          padding: '48px 28px 40px',
-        }}>
-          <div style={{
-            width: 180, height: 180, borderRadius: 999, position: 'relative',
-            marginBottom: 36, boxShadow: 'var(--shadow-lg)',
-          }}>
-            <IrisBloom s={palette.s} f={palette.f} beard={palette.beard} r={999} />
-          </div>
-
-          <div style={{
-            fontFamily: 'Bricolage Grotesque, system-ui, sans-serif',
-            fontWeight: 700, fontSize: 30, color: 'var(--ink)',
-            letterSpacing: -0.02, lineHeight: 1.1, textAlign: 'center', marginBottom: 14,
-          }}>
-            Welcome to Pod&nbsp;&amp;&nbsp;Pollen
-          </div>
-          <div style={{ fontSize: 16, color: 'var(--ink-3)', textAlign: 'center', lineHeight: 1.6, maxWidth: 320, marginBottom: 44 }}>
-            Your iris garden companion — track varieties, plan crosses, and follow every bloom.
-          </div>
-
-          <button
-            onClick={() => setStep(1)}
-            style={{
-              ...btnReset, cursor: 'pointer',
-              padding: '16px 40px', borderRadius: 999,
-              background: 'var(--accent)', color: '#fff',
-              fontSize: 16.5, fontWeight: 700,
-              boxShadow: '0 6px 20px var(--accent-shadow)',
-            }}
-          >
-            Get started
-          </button>
-
-          <button
-            onClick={handleDone}
-            style={{ ...btnReset, cursor: 'pointer', marginTop: 18, fontSize: 14, color: 'var(--ink-4)', fontWeight: 500 }}
-          >
-            Skip setup
-          </button>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'var(--bg)', display: 'flex', flexDirection: 'column', animation: 'blFade .3s ease' }}>
+      {/* progress + back */}
+      <div style={{ padding: 'calc(env(safe-area-inset-top) + 16px) 18px 8px', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <button onClick={back} disabled={step === 0} style={{ ...btnReset, cursor: step ? 'pointer' : 'default', opacity: step ? 1 : 0 }} aria-label="Back">
+          <span style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="back" size={22} stroke="var(--ink)" />
+          </span>
+        </button>
+        <div style={{ flex: 1, display: 'flex', gap: 6 }}>
+          {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+            <span key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: i <= step ? 'var(--accent)' : 'var(--line)', transition: 'background .2s' }} />
+          ))}
         </div>
-      )}
+        <button onClick={topSkip} style={{ ...btnReset, cursor: 'pointer', color: 'var(--ink-3)', fontSize: 14, fontWeight: 500 }}>
+          {topSkipLabel}
+        </button>
+      </div>
 
-      {/* ── Steps 1–4 ── */}
-      {step > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+      <div style={{ flex: 1, overflow: 'auto', padding: '8px 22px 24px', display: 'flex', flexDirection: 'column' }}>
+        {step === 0 && <StepWelcome />}
+        {step === 1 && <StepPlant />}
+        {step === 2 && <StepMatters value={matters} onChange={setMatters} />}
+        {step === 3 && <StepGardenType value={gardenType} onChange={setGardenType} />}
+        {step === 4 && <StepGarden value={gardenName} onChange={setGardenName} />}
+      </div>
 
-          {/* Header */}
-          <div style={{ padding: '18px 18px 0', display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button
-              onClick={() => setStep(s => s - 1)}
-              style={{
-                ...btnReset, cursor: 'pointer',
-                width: 38, height: 38, borderRadius: 10, flexShrink: 0,
-                background: 'var(--surface)', border: '1px solid var(--line)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}
-            >
-              <Icon name="back" size={20} stroke="var(--ink-2)" sw={2} />
-            </button>
-            <div style={{ flex: 1 }}>
-              <ProgressBar step={step} total={4} />
-            </div>
-            <button
-              onClick={handleDone}
-              style={{ ...btnReset, cursor: 'pointer', fontSize: 14, color: 'var(--ink-4)', fontWeight: 500, flexShrink: 0 }}
-            >
-              Skip
-            </button>
-          </div>
+      <div style={{ padding: '14px 22px calc(env(safe-area-inset-bottom) + 28px)', borderTop: '1px solid var(--line)', background: 'var(--bg)' }}>
+        <button onClick={next} style={{ ...btnReset, width: '100%', cursor: 'pointer', padding: 16, borderRadius: 15, background: 'var(--accent)', color: '#fff', fontSize: 16.5, fontWeight: 600, boxShadow: '0 6px 18px var(--accent-shadow)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          {step === TOTAL_STEPS - 1
+            ? <>Open Pod &amp; Pollen<Icon name="chevron" size={20} stroke="#fff" sw={2.2} /></>
+            : <>Continue<Icon name="chevron" size={20} stroke="#fff" sw={2.2} /></>}
+        </button>
+      </div>
+    </div>
+  )
+}
 
-          {/* Content */}
-          <div style={{ flex: 1, padding: '32px 24px 24px' }}>
+// ─── Step 0: Welcome ──────────────────────────────────────────
+function StepWelcome() {
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', padding: '20px 0 40px' }}>
+      <div style={{ position: 'relative', width: 180, height: 180, marginBottom: 28 }}>
+        <IrisBloom s={PAL.deepPurple.s} f={PAL.deepPurple.f} beard={PAL.deepPurple.beard} r={28} />
+      </div>
+      <div className="h-display" style={{ fontWeight: 600, fontSize: 38, color: 'var(--ink)', lineHeight: 1.05, marginBottom: 14 }}>Welcome to<br />Pod &amp; Pollen</div>
+      <div style={{ fontSize: 16, color: 'var(--ink-2)', lineHeight: 1.5, maxWidth: 320, marginBottom: 10 }}>
+        A field notebook for serious iris growers — plants, parents, crosses, seedlings, and first flowers, all connected.
+      </div>
+      <div style={{ fontSize: 13.5, color: 'var(--ink-3)', maxWidth: 280 }}>
+        Built for the garden. Works in any browser, on phone, tablet, or desktop.
+      </div>
+    </div>
+  )
+}
 
-            {/* Step 1: Plant types */}
-            {step === 1 && (
-              <>
-                <div style={{ fontFamily: 'Bricolage Grotesque, system-ui, sans-serif', fontWeight: 700, fontSize: 24, color: 'var(--ink)', marginBottom: 8 }}>
-                  What do you grow?
-                </div>
-                <div style={{ fontSize: 14.5, color: 'var(--ink-3)', marginBottom: 24, lineHeight: 1.5 }}>
-                  Select all that apply — we'll tailor your app.
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {PLANT_TYPES.map(opt => (
-                    <OptionCard
-                      key={opt}
-                      label={opt}
-                      selected={plantTypes.includes(opt)}
-                      onToggle={() => togglePlantType(opt)}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-
-            {/* Step 2: What matters most */}
-            {step === 2 && (
-              <>
-                <div style={{ fontFamily: 'Bricolage Grotesque, system-ui, sans-serif', fontWeight: 700, fontSize: 24, color: 'var(--ink)', marginBottom: 8 }}>
-                  What matters most?
-                </div>
-                <div style={{ fontSize: 14.5, color: 'var(--ink-3)', marginBottom: 24, lineHeight: 1.5 }}>
-                  We'll build your home screen around these priorities.
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {MATTERS.map(opt => (
-                    <OptionCard
-                      key={opt}
-                      label={opt}
-                      selected={matters.includes(opt)}
-                      onToggle={() => toggleMatter(opt)}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-
-            {/* Step 3: Garden type */}
-            {step === 3 && (
-              <>
-                <div style={{ fontFamily: 'Bricolage Grotesque, system-ui, sans-serif', fontWeight: 700, fontSize: 24, color: 'var(--ink)', marginBottom: 8 }}>
-                  Garden type
-                </div>
-                <div style={{ fontSize: 14.5, color: 'var(--ink-3)', marginBottom: 24, lineHeight: 1.5 }}>
-                  How do you primarily grow your irises?
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {GARDEN_TYPES.map(opt => (
-                    <SingleCard
-                      key={opt}
-                      label={opt}
-                      selected={gardenType === opt}
-                      onSelect={() => setGardenType(opt)}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-
-            {/* Step 4: Garden name */}
-            {step === 4 && (
-              <>
-                <div style={{ fontFamily: 'Bricolage Grotesque, system-ui, sans-serif', fontWeight: 700, fontSize: 24, color: 'var(--ink)', marginBottom: 8 }}>
-                  Where do you grow?
-                </div>
-                <div style={{ fontSize: 14.5, color: 'var(--ink-3)', marginBottom: 28, lineHeight: 1.5 }}>
-                  Give your garden a name (optional) — it'll appear across the app.
-                </div>
-                <input
-                  type="text"
-                  placeholder="e.g. Dave's Garden"
-                  value={gardenName}
-                  onChange={e => setGardenName(e.target.value)}
-                  style={{
-                    width: '100%', padding: '14px 16px', borderRadius: 14,
-                    background: 'var(--surface)', border: '1.5px solid var(--line)',
-                    fontSize: 16, color: 'var(--ink)', outline: 'none',
-                    fontFamily: 'Lexend, system-ui, sans-serif',
-                    boxSizing: 'border-box',
-                  }}
-                  autoFocus
-                />
-                <div style={{ fontSize: 13, color: 'var(--ink-4)', marginTop: 10 }}>
-                  You can always change this later in Settings.
-                </div>
-
-                {/* Summary card */}
-                {(plantTypes.length > 0 || matters.length > 0 || gardenType) && (
-                  <div style={{
-                    marginTop: 28, padding: '14px 16px', borderRadius: 14,
-                    background: 'var(--surface)', border: '1px solid var(--line)',
-                  }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.5, color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 10 }}>
-                      Your setup
-                    </div>
-                    {plantTypes.length > 0 && (
-                      <div style={{ fontSize: 13.5, color: 'var(--ink-2)', marginBottom: 4 }}>
-                        <span style={{ color: 'var(--ink-4)' }}>Growing: </span>
-                        {plantTypes.join(', ')}
-                      </div>
-                    )}
-                    {matters.length > 0 && (
-                      <div style={{ fontSize: 13.5, color: 'var(--ink-2)', marginBottom: 4 }}>
-                        <span style={{ color: 'var(--ink-4)' }}>Focus: </span>
-                        {matters.join(', ')}
-                      </div>
-                    )}
-                    {gardenType && (
-                      <div style={{ fontSize: 13.5, color: 'var(--ink-2)' }}>
-                        <span style={{ color: 'var(--ink-4)' }}>Garden: </span>
-                        {gardenType}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-
-          {/* Footer nav */}
-          <div style={{ padding: '12px 24px 40px', display: 'flex', gap: 12 }}>
-            {step < 4 ? (
-              <button
-                onClick={() => setStep(s => s + 1)}
-                disabled={!canNext()}
-                style={{
-                  ...btnReset, cursor: canNext() ? 'pointer' : 'not-allowed', flex: 1,
-                  padding: '15px 0', borderRadius: 999,
-                  background: canNext() ? 'var(--accent)' : 'var(--line-2)',
-                  color: canNext() ? '#fff' : 'var(--ink-4)',
-                  fontSize: 16, fontWeight: 700,
-                  transition: 'all .15s',
-                }}
-              >
-                Next
-              </button>
-            ) : (
-              <button
-                onClick={handleDone}
-                style={{
-                  ...btnReset, cursor: 'pointer', flex: 1,
-                  padding: '15px 0', borderRadius: 999,
-                  background: 'var(--accent)', color: '#fff',
-                  fontSize: 16, fontWeight: 700,
-                  boxShadow: '0 6px 20px var(--accent-shadow)',
-                }}
-              >
-                Done
-              </button>
-            )}
-          </div>
+// ─── Step 1: Plant type (irises today; built in for future genera) ──
+function StepPlant() {
+  const iris = PLANT_TYPES.find(p => p.k === 'iris')!
+  const pal = PAL[iris.pal]
+  return (
+    <div>
+      <div className="h-display" style={{ fontWeight: 600, fontSize: 28, color: 'var(--ink)', lineHeight: 1.1, marginBottom: 10 }}>A field notebook for irises</div>
+      <div style={{ fontSize: 14.5, color: 'var(--ink-3)', lineHeight: 1.5, marginBottom: 22 }}>
+        Pod &amp; Pollen is built around the iris breeding lifecycle — varieties, parents, crosses, seedlings, and first flowers, all connected.
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 16, borderRadius: 16, background: 'var(--accent-bg)', border: '1.5px solid var(--accent)', boxShadow: '0 4px 14px var(--accent-shadow)' }}>
+        <div style={{ width: 60, height: 60, borderRadius: 14, overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
+          <IrisBloom s={pal.s} f={pal.f} beard={pal.beard} r={14} />
         </div>
-      )}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="h-display" style={{ fontWeight: 600, fontSize: 19, color: 'var(--ink)' }}>Irises</div>
+          <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 3, lineHeight: 1.4 }}>{iris.blurb}</div>
+        </div>
+        <span style={{ width: 28, height: 28, borderRadius: 999, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Icon name="check" size={16} stroke="#fff" sw={2.6} />
+        </span>
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
+        {PLANT_TYPES.filter(p => !p.avail).map(p => (
+          <span key={p.k} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 999, background: 'var(--surface)', border: '1px solid var(--line)', fontSize: 12.5, color: 'var(--ink-4)', fontWeight: 500 }}>
+            {p.label}
+            <span style={{ fontSize: 10.5, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: 0.3 }}>{p.eta}</span>
+          </span>
+        ))}
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 12, lineHeight: 1.5 }}>
+        More plant families are on the way — your iris records stay exactly as they are.
+      </div>
+    </div>
+  )
+}
+
+// ─── Step 2: What matters most (drives the dashboard) ─────────
+function StepMatters({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
+  const options = getGoals()
+  const toggle = (k: string) => {
+    if (value.includes(k)) onChange(value.filter(x => x !== k))
+    else if (value.length < 4) onChange([...value, k])
+  }
+  return (
+    <div>
+      <div className="h-display" style={{ fontWeight: 600, fontSize: 28, color: 'var(--ink)', lineHeight: 1.1, marginBottom: 10 }}>What matters most to you?</div>
+      <div style={{ fontSize: 14.5, color: 'var(--ink-3)', lineHeight: 1.5, marginBottom: 18 }}>
+        Pick up to 4. We&apos;ll set up your home dashboard around what you care about — you can change it anytime in Settings.
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+        {options.map(opt => {
+          const active = value.includes(opt.k)
+          const atLimit = !active && value.length >= 4
+          return (
+            <button key={opt.k} onClick={() => toggle(opt.k)} disabled={atLimit} style={{ ...btnReset, cursor: atLimit ? 'default' : 'pointer', opacity: atLimit ? 0.45 : 1, width: '100%', textAlign: 'left' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 14px', borderRadius: 14, background: active ? 'var(--accent-bg)' : 'var(--surface)', border: active ? '1.5px solid var(--accent)' : '1px solid var(--line)', boxShadow: active ? '0 2px 8px var(--accent-shadow)' : 'var(--shadow-sm)', transition: 'all .15s' }}>
+                <span style={{ width: 38, height: 38, borderRadius: 10, background: active ? 'var(--accent)' : 'var(--accent-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'background .15s' }}>
+                  <Icon name={opt.icon} size={20} stroke={active ? '#fff' : 'var(--accent)'} sw={1.9} />
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--ink)' }}>{opt.label}</div>
+                  <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 1, lineHeight: 1.35 }}>{opt.sub}</div>
+                </div>
+                <span style={{ width: 24, height: 24, borderRadius: 999, border: active ? '0' : '1.5px solid var(--line-2)', background: active ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  {active && <Icon name="check" size={14} stroke="#fff" sw={2.6} />}
+                </span>
+              </div>
+            </button>
+          )
+        })}
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 12, textAlign: 'center' }}>{value.length}/4 selected</div>
+    </div>
+  )
+}
+
+// ─── Step 3: Garden type (tilts the recommended widgets) ──────
+function StepGardenType({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const options = [
+    { k: 'collector', icon: 'flower', label: 'Mostly collecting named varieties', sub: 'I grow established cultivars' },
+    { k: 'breeder',   icon: 'dna',    label: 'Active breeding programme',         sub: 'I make crosses and grow seedlings' },
+    { k: 'mixed',     icon: 'leaf',   label: 'A mix of both',                     sub: 'I do a bit of each' },
+  ]
+  return (
+    <div>
+      <div className="h-display" style={{ fontWeight: 600, fontSize: 28, color: 'var(--ink)', lineHeight: 1.1, marginBottom: 10 }}>How would you describe your garden?</div>
+      <div style={{ fontSize: 14.5, color: 'var(--ink-3)', lineHeight: 1.5, marginBottom: 18 }}>
+        This helps us pick the right starting widgets for your home.
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {options.map(opt => {
+          const active = value === opt.k
+          return (
+            <button key={opt.k} onClick={() => onChange(opt.k)} style={{ ...btnReset, cursor: 'pointer', width: '100%', textAlign: 'left' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 13, padding: 16, borderRadius: 16, background: active ? 'var(--accent-bg)' : 'var(--surface)', border: active ? '1.5px solid var(--accent)' : '1px solid var(--line)', boxShadow: active ? '0 4px 14px var(--accent-shadow)' : 'var(--shadow-sm)', transition: 'all .15s' }}>
+                <span style={{ width: 46, height: 46, borderRadius: 12, background: active ? 'var(--accent)' : 'var(--accent-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Icon name={opt.icon} size={24} stroke={active ? '#fff' : 'var(--accent)'} sw={1.9} />
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 15.5, fontWeight: 600, color: 'var(--ink)' }}>{opt.label}</div>
+                  <div style={{ fontSize: 13, color: 'var(--ink-3)', marginTop: 2, lineHeight: 1.35 }}>{opt.sub}</div>
+                </div>
+                <span style={{ width: 26, height: 26, borderRadius: 999, border: active ? '0' : '1.5px solid var(--line-2)', background: active ? 'var(--accent)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  {active && <Icon name="check" size={15} stroke="#fff" sw={2.6} />}
+                </span>
+              </div>
+            </button>
+          )
+        })}
+      </div>
+      <div style={{ marginTop: 18, padding: 14, background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--line)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 6 }}>
+          <Icon name="sliders" size={17} stroke="var(--accent)" sw={2} />
+          <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>You can change this anytime</span>
+        </div>
+        <div style={{ fontSize: 12.5, color: 'var(--ink-3)', lineHeight: 1.5 }}>Settings → Customize home. Add or remove widgets, change the order, or rerun this setup.</div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Step 4: Where do you grow (first location) ───────────────
+function StepGarden({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const suggestions = ['Top Bed', 'Long Border', 'Trial Bed', 'Greenhouse', 'Pots — Patio']
+  return (
+    <div>
+      <div className="h-display" style={{ fontWeight: 600, fontSize: 28, color: 'var(--ink)', lineHeight: 1.1, marginBottom: 10 }}>Where do you grow?</div>
+      <div style={{ fontSize: 14.5, color: 'var(--ink-3)', lineHeight: 1.5, marginBottom: 22 }}>
+        Add your first garden location. Beds, borders, pots, greenhouse — whatever you use. You can add more later.
+      </div>
+      <input
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder="e.g. Top Bed"
+        style={{ width: '100%', boxSizing: 'border-box', padding: '16px 18px', borderRadius: 14, border: '1px solid var(--line-2)', background: 'var(--surface)', fontSize: 18, fontFamily: 'Lexend, sans-serif', color: 'var(--ink)', outline: 'none' }}
+      />
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
+        {suggestions.map(s => (
+          <button key={s} onClick={() => onChange(s)} style={{ ...btnReset, cursor: 'pointer', padding: '8px 13px', borderRadius: 999, background: 'var(--surface)', border: '1px solid var(--line-2)', fontSize: 13.5, color: 'var(--ink-2)' }}>{s}</button>
+        ))}
+      </div>
+      <div style={{ marginTop: 24, padding: 14, background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--line)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 7 }}>
+          <Icon name="check" size={18} stroke="var(--green)" sw={2.2} />
+          <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>You&apos;re set up</span>
+        </div>
+        <div style={{ fontSize: 12.5, color: 'var(--ink-3)', lineHeight: 1.5 }}>Your records are private by default. Photos stay yours. Export anytime.</div>
+      </div>
     </div>
   )
 }

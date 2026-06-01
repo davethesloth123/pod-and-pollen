@@ -261,46 +261,85 @@ export const recent = [
 ]
 
 // ─── Widget catalog ───────────────────────────────────────────
+// Each widget can optionally declare goalKey/goalLabel/goalSub/goalIcon, which
+// power the "what matters most" onboarding step. Multiple widgets can share a
+// goalKey; the first one with a goalLabel supplies the option's copy.
 export const WIDGETS: WidgetDef[] = [
-  { id: 'quick',    label: 'Quick add',           sub: 'Log a note, photo, or new iris', icon: 'plus',     system: 'always-start' },
-  { id: 'today',    label: 'Today',               sub: 'What needs your attention now',  icon: 'sun',      goalKey: 'track',   goalLabel: 'Track daily activity',   goalSub: 'Ready-to-evaluate, watch list, capture flowering', goalIcon: 'sun' },
-  { id: 'recent',   label: 'Recent activity',     sub: 'Latest notes and photos',        icon: 'clock',    system: 'always-end' },
-  { id: 'favs',     label: 'Favourites',          sub: 'Your starred irises',            icon: 'heart',    goalKey: 'collect',  goalLabel: 'Collect and curate',     goalSub: 'Focus on your favourite varieties', goalIcon: 'heart' },
-  { id: 'flowering',label: 'Now flowering',       sub: 'What\'s blooming right now',     icon: 'flower',   goalKey: 'bloom',    goalLabel: 'Follow what\'s blooming', goalSub: 'Season calendar and flowering status', goalIcon: 'flower' },
-  { id: 'seedlings',label: 'Seedling progress',   sub: 'Seedlings from your crosses',    icon: 'sprout',   goalKey: 'breed',    goalLabel: 'Breed new varieties',    goalSub: 'Crosses, seed batches, and seedling progress', goalIcon: 'dna' },
-  { id: 'crosses',  label: 'Crosses progress',    sub: 'Funnel from pollen to flower',   icon: 'dna',      goalKey: 'breed' },
-  { id: 'collection',label: 'Collection overview',sub: 'Stats across all your plants',  icon: 'grid',     goalKey: 'collect' },
-  { id: 'calendar', label: 'Bloom calendar',      sub: 'Monthly flowering view',         icon: 'calendar', goalKey: 'bloom' },
-  { id: 'garden',   label: 'Garden plan',         sub: 'Top-down bed map',               icon: 'pin',      goalKey: 'map',      goalLabel: 'Map your garden',        goalSub: 'Know what\'s where', goalIcon: 'pin' },
+  { id: 'today',     label: 'Today focus',       sub: 'What needs you right now',     icon: 'star',
+    goalKey: 'thisweek',  goalLabel: 'Knowing what to do this week',   goalSub: 'Daily/weekly attention list',    goalIcon: 'star' },
+  { id: 'inflower',  label: 'In flower now',     sub: "What's blooming today",        icon: 'flower',
+    goalKey: 'flowering', goalLabel: "Watching what's in flower",      goalSub: 'See blooms as they open',         goalIcon: 'flower' },
+  { id: 'recent',    label: 'Recently updated',  sub: 'Latest notes & photos',        icon: 'clock', system: 'always-end' },
+  { id: 'fav',       label: 'Favourites',        sub: 'Starred plants',               icon: 'heart' },
+  { id: 'watch',     label: 'Watch list',        sub: 'Plants needing attention',     icon: 'eye',
+    goalKey: 'thisweek' },
+  { id: 'photowall', label: 'Photo wall',        sub: 'Latest captures',              icon: 'camera',
+    goalKey: 'photos',    goalLabel: 'Capturing photos as records',   goalSub: 'Build a visual history',          goalIcon: 'camera' },
+  { id: 'quick',     label: 'Quick actions',     sub: 'Common buttons',               icon: 'plus', system: 'always-start' },
+  { id: 'gardenmap', label: 'Garden plan',       sub: 'Bed-by-bed mini map',          icon: 'pin',
+    goalKey: 'mapping',   goalLabel: 'Mapping where things grow',      goalSub: 'Bed-by-bed layout',               goalIcon: 'pin' },
+  { id: 'calendar',  label: 'Bloom calendar',    sub: 'Year-at-a-glance',             icon: 'calendar',
+    goalKey: 'season',    goalLabel: 'Planning by bloom season',       goalSub: 'Year-at-a-glance view',           goalIcon: 'calendar' },
+  { id: 'crosses',   label: 'Crosses progress',  sub: 'Breeding pipeline overview',   icon: 'dna',
+    goalKey: 'breeding',  goalLabel: 'Tracking my breeding programme', goalSub: 'Crosses, seedlings, evaluations', goalIcon: 'dna' },
 ]
 
-export const DEFAULT_WIDGETS = ['quick', 'today', 'flowering', 'collection', 'recent']
+// Canonical dashboard render order (also the priority used by recommendWidgets)
+export const WIDGET_PRIORITY = ['quick', 'today', 'inflower', 'watch', 'fav', 'crosses', 'photowall', 'gardenmap', 'calendar', 'recent']
+
+export interface Goal { k: string; icon: string; label: string; sub: string }
+
+// Derive the "what matters" options from widget metadata.
+export function getGoals(): Goal[] {
+  const seen = new Set<string>()
+  const goals: Goal[] = []
+  for (const w of WIDGETS) {
+    if (!w.goalKey || !w.goalLabel || seen.has(w.goalKey)) continue
+    seen.add(w.goalKey)
+    goals.push({ k: w.goalKey, icon: w.goalIcon || w.icon, label: w.goalLabel, sub: w.goalSub || '' })
+  }
+  return goals
+}
+
+// Build a recommended widget set from onboarding answers.
+export function recommendWidgets({ matters = [], gardenType = 'mixed', frequency = 'weekly' }: { matters?: string[]; gardenType?: string; frequency?: string } = {}): string[] {
+  const order: string[] = []
+  const add = (id: string) => { if (id && !order.includes(id)) order.push(id) }
+
+  for (const w of WIDGETS) if (w.system === 'always-start') add(w.id)
+  for (const w of WIDGETS) if (w.goalKey && matters.includes(w.goalKey)) add(w.id)
+
+  if (gardenType === 'collector') { add('inflower'); add('fav'); add('photowall') }
+  if (gardenType === 'breeder')   { add('today'); add('crosses'); add('watch') }
+  if (gardenType === 'mixed')     { add('inflower'); add('today') }
+
+  if (frequency === 'daily') { add('today'); add('inflower') }
+  if (frequency === 'rare')  { add('recent') }
+
+  for (const w of WIDGETS) if (w.system === 'always-end') add(w.id)
+
+  return order.sort((a, b) => WIDGET_PRIORITY.indexOf(a) - WIDGET_PRIORITY.indexOf(b))
+}
 
 export const WIDGET_RECIPES: Record<string, string[]> = {
-  Breeder:   ['quick', 'today', 'seedlings', 'crosses', 'recent'],
-  Collector: ['quick', 'favs', 'collection', 'flowering', 'recent'],
-  Casual:    ['quick', 'flowering', 'recent'],
-  Mapper:    ['quick', 'garden', 'collection', 'recent'],
-  Everything:['quick', 'today', 'favs', 'flowering', 'seedlings', 'crosses', 'collection', 'calendar', 'garden', 'recent'],
+  Breeder:    recommendWidgets({ matters: ['breeding', 'thisweek', 'flowering'], gardenType: 'breeder', frequency: 'daily' }),
+  Collector:  recommendWidgets({ matters: ['flowering', 'photos', 'season'], gardenType: 'collector', frequency: 'weekly' }),
+  Casual:     recommendWidgets({ matters: ['flowering'], gardenType: 'mixed', frequency: 'rare' }),
+  Mapper:     recommendWidgets({ matters: ['mapping', 'flowering', 'season'], gardenType: 'mixed', frequency: 'weekly' }),
+  Everything: ['quick', 'today', 'inflower', 'watch', 'fav', 'crosses', 'photowall', 'gardenmap', 'calendar', 'recent'],
 }
 
-export function getGoals() {
-  return WIDGETS
-    .filter(w => w.goalKey && w.goalLabel)
-    .filter((w, i, arr) => arr.findIndex(x => x.goalKey === w.goalKey) === i)
-}
+// Reasonable default if the user skips personalisation
+export const DEFAULT_WIDGETS = WIDGET_RECIPES.Collector
 
-export function recommendWidgets(opts: { matters: string[]; gardenType: string; frequency?: string }): string[] {
-  const { matters } = opts
-  const widgetIds: string[] = ['quick']
-  const seen = new Set<string>(['quick'])
-  const add = (id: string) => { if (!seen.has(id)) { widgetIds.push(id); seen.add(id) } }
-  matters.forEach(goalKey => {
-    WIDGETS.filter(w => w.goalKey === goalKey && !w.system).forEach(w => add(w.id))
-  })
-  add('recent')
-  return widgetIds
-}
+// ─── Plant types (future-platform anchor; only irises available today) ──
+export interface PlantType { k: string; label: string; avail: boolean; blurb: string; pal: string; eta?: string }
+export const PLANT_TYPES: PlantType[] = [
+  { k: 'iris',   label: 'Irises',  avail: true,  blurb: 'Tall bearded, intermediate, dwarf, beardless, Siberian, and more.', pal: 'deepPurple' },
+  { k: 'rose',   label: 'Roses',   avail: false, blurb: 'Hybrid tea, floribunda, shrub, climber',  pal: 'pink',    eta: 'Planned' },
+  { k: 'dahlia', label: 'Dahlias', avail: false, blurb: 'Cactus, decorative, ball, pompon',        pal: 'apricot', eta: 'Planned' },
+  { k: 'other',  label: 'Other',   avail: false, blurb: 'Lilies, daffodils, fuchsias…',            pal: 'white',   eta: 'Later' },
+]
 
 // ─── User stub (for demo state) ───────────────────────────────
 export const user = { name: 'Dave', initial: 'D', gardenName: "Dave's Garden" }
