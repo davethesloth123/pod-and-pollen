@@ -123,17 +123,6 @@ function StepPlant() {
           <Icon name="check" size={16} stroke="#fff" sw={2.6} />
         </span>
       </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
-        {PLANT_TYPES.filter(p => !p.avail).map(p => (
-          <span key={p.k} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 999, background: 'var(--surface)', border: '1px solid var(--line)', fontSize: 12.5, color: 'var(--ink-4)', fontWeight: 500 }}>
-            {p.label}
-            <span style={{ fontSize: 10.5, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: 0.3 }}>{p.eta}</span>
-          </span>
-        ))}
-      </div>
-      <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 12, lineHeight: 1.5 }}>
-        More plant families are on the way — your iris records stay exactly as they are.
-      </div>
     </div>
   )
 }
