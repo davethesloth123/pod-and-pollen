@@ -10,7 +10,7 @@ export function AuthBg({ children }: { children: React.ReactNode }) {
       <div style={{ position: 'absolute', bottom: -70, left: -80, opacity: 0.05, pointerEvents: 'none', transform: 'rotate(-10deg)' }}>
         <Icon name="iris" size={260} stroke="var(--accent)" sw={0.8} />
       </div>
-      <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column' }}>{children}</div>
+      <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', width: '100%', maxWidth: 440, margin: '0 auto' }}>{children}</div>
     </div>
   )
 }
