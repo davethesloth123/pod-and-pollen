@@ -212,7 +212,7 @@ export function CollectionScreen({ go, wide, openAdd, params }: CollectionScreen
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: wide ? '1fr 1fr 1fr' : '1fr 1fr',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
             gap: 12,
           }}
         >
