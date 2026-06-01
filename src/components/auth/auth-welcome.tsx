@@ -11,7 +11,7 @@ export function AuthWelcome({ onSignUp, onSignIn }: { onSignUp: () => void; onSi
             <Icon name="iris" size={68} stroke="#fff" sw={1.6} />
           </div>
           <div className="h-display" style={{ fontSize: 46, color: 'var(--ink)', lineHeight: 0.96, letterSpacing: -0.02, marginBottom: 16 }}>
-            Pod <span style={{ color: 'var(--accent)', fontStyle: 'italic', fontWeight: 500 }}>&</span> Pollen
+            Pod<span style={{ color: 'var(--accent)', fontStyle: 'italic', fontWeight: 500, marginLeft: '0.18em', marginRight: '0.28em' }}>&</span>Pollen
           </div>
           <div style={{ fontSize: 16, color: 'var(--ink-2)', lineHeight: 1.5, maxWidth: 320, marginBottom: 8 }}>
             A field notebook for serious gardeners.

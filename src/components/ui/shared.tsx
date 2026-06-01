@@ -24,7 +24,7 @@ export function Wordmark({ size = 22, plant = 'iris' }: { size?: number; plant?:
       </span>
       <span style={{ fontFamily: 'Bricolage Grotesque, system-ui, sans-serif', fontWeight: 600, fontSize: size * 1.15,
         color: 'var(--ink)', letterSpacing: 0, lineHeight: 1 }}>
-        Pod <span style={{ fontStyle: 'italic', color: 'var(--accent)' }}>&</span> Pollen
+        Pod<span style={{ fontStyle: 'italic', color: 'var(--accent)', marginLeft: '0.18em', marginRight: '0.28em' }}>&</span>Pollen
       </span>
     </div>
   )

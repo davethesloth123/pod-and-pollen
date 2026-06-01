@@ -158,7 +158,7 @@ function AppHeader({ tab, user, onSettings }: AppHeaderProps) {
     return (
       <div style={stickyHeader}>
         <span className="h-display" style={{ fontSize: 20, letterSpacing: -0.01 }}>
-          Pod <span style={{ color: 'var(--accent)', fontStyle: 'italic', fontWeight: 500 }}>&amp;</span> Pollen
+          Pod<span style={{ color: 'var(--accent)', fontStyle: 'italic', fontWeight: 500, marginLeft: '0.18em', marginRight: '0.28em' }}>&amp;</span>Pollen
         </span>
         <button
           onClick={onSettings}
