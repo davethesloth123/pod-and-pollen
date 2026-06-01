@@ -5,7 +5,8 @@ import {
   IrisThumb, SectionLabel, RatingDots, LifecycleRail,
   btnReset, StatusBadge,
 } from '@/components/ui/shared'
-import { irises, byId, crossesList, PAL, lifecycleFor, latestEval } from '@/lib/data'
+import { crossesList, PAL, lifecycleFor, latestEval } from '@/lib/data'
+import { useData } from '@/lib/data-context'
 import type { Iris, IrisNote, LifecycleStep } from '@/types'
 
 // ─── Types ────────────────────────────────────────────────────
@@ -58,6 +59,7 @@ function ParentChip({
   name?: string
   go: (view: string | number, params?: Record<string, any>) => void
 }) {
+  const { irises } = useData()
   if (!name || name === 'Unknown') return null
   const parent = irises.find((i) => i.name === name)
   return (
@@ -511,6 +513,7 @@ function SeedlingsStrip({
   iris: Iris
   go: (view: string | number, params?: Record<string, any>) => void
 }) {
+  const { irises } = useData()
   const seedlings = irises.filter(
     (i) =>
       i.kind === 'Seedling' &&
@@ -804,6 +807,7 @@ export function IrisDetailScreen({
   openPhotoViewer,
   toast,
 }: IrisDetailScreenProps) {
+  const { byId } = useData()
   const iris = byId(id)
 
   if (!iris) {

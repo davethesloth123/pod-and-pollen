@@ -3,7 +3,8 @@ import React from 'react'
 import { Icon } from '@/components/ui/icon'
 import { IrisThumb, IrisCard, ActionRow, SectionLabel, btnReset } from '@/components/ui/shared'
 import { IrisBloom } from '@/components/ui/iris-bloom'
-import { irises, locations, recent, crosses, crossesList, crossStats, byId, DEFAULT_WIDGETS, WIDGETS, PAL, STATUS, todayFocus, latestEval } from '@/lib/data'
+import { DEFAULT_WIDGETS, WIDGETS, PAL } from '@/lib/data'
+import { useData } from '@/lib/data-context'
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -85,7 +86,11 @@ function TodayCard({ tint, icon, label, count, title, sub, cta, onClick }: {
 }
 
 function TodayWidget({ go }: { go: (view: string | -1, params?: Record<string, any>) => void }) {
-  const { seedlingsToEval, seedlingsReEval, watchList, inFlower } = todayFocus()
+  const { irises } = useData()
+  const seedlingsToEval = irises.filter(i => i.kind === 'Seedling' && i.status === 'First flower')
+  const seedlingsReEval = irises.filter(i => i.kind === 'Seedling' && i.status === 'Flowering' && (i.evaluations?.length ?? 0) > 0)
+  const watchList = irises.filter(i => i.status === 'Watch')
+  const inFlower = irises.filter(i => i.status === 'Flowering' || i.status === 'First flower')
 
   const cards: React.ReactNode[] = []
 
@@ -171,6 +176,7 @@ function TodayWidget({ go }: { go: (view: string | -1, params?: Record<string, a
 }
 
 function InFlowerWidget({ go }: { go: (view: string | -1, params?: Record<string, any>) => void }) {
+  const { irises } = useData()
   const flowering = irises.filter(i => i.status === 'Flowering' || i.status === 'First flower')
 
   return (
@@ -216,46 +222,18 @@ function InFlowerWidget({ go }: { go: (view: string | -1, params?: Record<string
   )
 }
 
-function RecentWidget({ go }: { go: (view: string | -1, params?: Record<string, any>) => void }) {
+function RecentWidget({ go: _go }: { go: (view: string | -1, params?: Record<string, any>) => void }) {
+  // Activity feed (notes/photos timeline) lands with the notes slice.
   return (
     <div>
-      <WidgetHeader title="Recent Activity" count={recent.length} />
-      {recent.length === 0 ? (
-        <EmptyHint icon="clock" title="No recent activity" body="Notes and photos you add will appear here." />
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {recent.map((item, idx) => {
-            const iris = byId(item.iris)
-            if (!iris) return null
-            return (
-              <button
-                key={idx}
-                onClick={() => go('detail', { id: iris.id })}
-                style={{ ...btnReset, cursor: 'pointer', width: '100%', textAlign: 'left' }}
-              >
-                <div style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '10px 2px', borderBottom: idx < recent.length - 1 ? '1px solid var(--line)' : 'none' }}>
-                  <div style={{ width: 56, height: 56, borderRadius: 12, overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
-                    <IrisThumb iris={iris} r={12} />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 2 }}>
-                      <span style={{ fontWeight: 600, fontSize: 14.5, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>{iris.name}</span>
-                      <span style={{ fontSize: 12, color: 'var(--ink-4)', flexShrink: 0 }}>{item.d}</span>
-                    </div>
-                    <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--accent)', marginBottom: 2 }}>{item.t}</div>
-                    <div style={{ fontSize: 12.5, color: 'var(--ink-3)', lineHeight: 1.35, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const }}>{item.x}</div>
-                  </div>
-                </div>
-              </button>
-            )
-          })}
-        </div>
-      )}
+      <WidgetHeader title="Recent Activity" />
+      <EmptyHint icon="clock" title="No recent activity" body="Notes and photos you add will appear here." />
     </div>
   )
 }
 
 function WatchWidget({ go }: { go: (view: string | -1, params?: Record<string, any>) => void }) {
+  const { irises } = useData()
   const watchItems = irises.filter(i => i.status === 'Watch')
 
   return (
@@ -275,6 +253,7 @@ function WatchWidget({ go }: { go: (view: string | -1, params?: Record<string, a
 }
 
 function FavWidget({ go }: { go: (view: string | -1, params?: Record<string, any>) => void }) {
+  const { irises } = useData()
   const favs = irises.filter(i => i.fav === true)
 
   return (
@@ -302,139 +281,52 @@ function FavWidget({ go }: { go: (view: string | -1, params?: Record<string, any
 }
 
 function CrossesWidget({ go }: { go: (view: string | -1, params?: Record<string, any>) => void }) {
-  const list = crossesList().slice(0, 3)
-
-  const podIris = (name: string) => irises.find(i => i.name === name)
-  const pollenIris = (name: string) => irises.find(i => i.name === name)
-
+  // Live crosses land with the crosses slice.
   return (
     <div>
       <WidgetHeader
         title="Crosses"
-        count={crossesList().length}
         action={
           <button onClick={() => go('crosses')} style={{ ...btnReset, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>
             See all
           </button>
         }
       />
-      {list.length === 0 ? (
-        <EmptyHint icon="dna" title="No crosses yet" body="Record pollinations to track your breeding program." />
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {list.map(cross => {
-            const stats = crossStats(cross.id)
-            const pod = podIris(cross.pod)
-            const pollen = pollenIris(cross.pollen)
-            return (
-              <button
-                key={cross.id}
-                onClick={() => go('cross', { id: cross.id })}
-                style={{ ...btnReset, cursor: 'pointer', width: '100%', textAlign: 'left' }}
-              >
-                <div style={{ background: 'var(--surface)', borderRadius: 16, border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)', padding: '13px 14px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                    {/* Pod parent thumb */}
-                    <div style={{ position: 'relative', width: 48, height: 48, borderRadius: 12, overflow: 'hidden', flexShrink: 0 }}>
-                      {pod
-                        ? <IrisThumb iris={pod} r={12} />
-                        : <div style={{ position: 'absolute', inset: 0, background: 'var(--surface-2)', borderRadius: 12 }} />
-                      }
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <Icon name="droplet" size={16} stroke="var(--ink-3)" sw={1.8} />
-                    </div>
-                    {/* Pollen parent thumb */}
-                    <div style={{ position: 'relative', width: 48, height: 48, borderRadius: 12, overflow: 'hidden', flexShrink: 0 }}>
-                      {pollen
-                        ? <IrisThumb iris={pollen} r={12} />
-                        : <div style={{ position: 'absolute', inset: 0, background: 'var(--surface-2)', borderRadius: 12 }} />
-                      }
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0, marginLeft: 2 }}>
-                      <div style={{ fontFamily: 'Bricolage Grotesque, system-ui, sans-serif', fontWeight: 600, fontSize: 15.5, color: 'var(--ink)', marginBottom: 2 }}>{cross.code}</div>
-                      <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>{cross.season} · {cross.status}</div>
-                    </div>
-                    <Icon name="chevron" size={18} stroke="var(--ink-4)" />
-                  </div>
-                  {/* Stats row */}
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {stats.total > 0 && (
-                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-3)', background: 'var(--surface-2)', padding: '3px 9px', borderRadius: 999, border: '1px solid var(--line)' }}>
-                        {stats.total} seedlings
-                      </span>
-                    )}
-                    {stats.firstFlower > 0 && (
-                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--amber)', background: 'var(--amber-bg)', padding: '3px 9px', borderRadius: 999, border: '1px solid var(--amber-line)' }}>
-                        {stats.firstFlower} first flower
-                      </span>
-                    )}
-                    {stats.flowering > 0 && (
-                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--rose)', background: 'var(--rose-bg)', padding: '3px 9px', borderRadius: 999, border: '1px solid var(--rose-line)' }}>
-                        {stats.flowering} flowering
-                      </span>
-                    )}
-                    {stats.watch > 0 && (
-                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--clay)', background: 'var(--clay-bg)', padding: '3px 9px', borderRadius: 999, border: '1px solid var(--clay-line)' }}>
-                        {stats.watch} watch
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </button>
-            )
-          })}
-        </div>
-      )}
+      <EmptyHint icon="dna" title="No crosses yet" body="Record pollinations to track your breeding programme." />
     </div>
   )
 }
 
 function PhotoWallWidget({ go }: { go: (view: string | -1, params?: Record<string, any>) => void }) {
+  const { irises } = useData()
   const photos = irises
     .filter(i => i.photos?.length)
     .flatMap(i => i.photos!.slice(0, 2).map((p, j) => ({ iris: i, p, key: i.id + j })))
     .slice(0, 9)
 
-  // If no real photos, use iris bloom renders
-  const blooms = irises.slice(0, 9)
-
   return (
     <div>
       <WidgetHeader title="Photo Wall" />
-      {photos.length === 0 && blooms.length === 0 ? (
+      {photos.length === 0 ? (
         <EmptyHint icon="camera" title="No photos yet" body="Add photos to your irises to build your gallery." />
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 6 }}>
-          {photos.length > 0
-            ? photos.map(({ iris, p, key }) => (
-                <button
-                  key={key}
-                  onClick={() => go('detail', { id: iris.id })}
-                  style={{ ...btnReset, cursor: 'pointer', aspectRatio: '1', position: 'relative', borderRadius: 10, overflow: 'hidden' }}
-                >
-                  {p.url
-                    ? <img src={p.url} alt={iris.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    : (
-                      <div style={{ position: 'absolute', inset: 0 }}>
-                        <IrisBloom s={PAL[iris.pal]?.s ?? PAL.deepPurple.s} f={PAL[iris.pal]?.f ?? PAL.deepPurple.f} beard={PAL[iris.pal]?.beard ?? PAL.deepPurple.beard} r={10} />
-                      </div>
-                    )
-                  }
-                </button>
-              ))
-            : blooms.map(iris => (
-                <button
-                  key={iris.id}
-                  onClick={() => go('detail', { id: iris.id })}
-                  style={{ ...btnReset, cursor: 'pointer', aspectRatio: '1', position: 'relative', borderRadius: 10, overflow: 'hidden' }}
-                >
+          {photos.map(({ iris, p, key }) => (
+            <button
+              key={key}
+              onClick={() => go('detail', { id: iris.id })}
+              style={{ ...btnReset, cursor: 'pointer', aspectRatio: '1', position: 'relative', borderRadius: 10, overflow: 'hidden' }}
+            >
+              {p.url
+                ? <img src={p.url} alt={iris.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : (
                   <div style={{ position: 'absolute', inset: 0 }}>
                     <IrisBloom s={PAL[iris.pal]?.s ?? PAL.deepPurple.s} f={PAL[iris.pal]?.f ?? PAL.deepPurple.f} beard={PAL[iris.pal]?.beard ?? PAL.deepPurple.beard} r={10} />
                   </div>
-                </button>
-              ))
-          }
+                )
+              }
+            </button>
+          ))}
         </div>
       )}
     </div>
@@ -442,6 +334,7 @@ function PhotoWallWidget({ go }: { go: (view: string | -1, params?: Record<strin
 }
 
 function GardenMapWidget({ go }: { go: (view: string | -1, params?: Record<string, any>) => void }) {
+  const { irises, locations } = useData()
   const kindColor = (kind: string) =>
     ({ Bed: '#5F7A52', Border: '#7A9268', 'Trial area': '#8E9F62', Greenhouse: '#C7B26A', Holding: '#9C8762', Pots: '#A88B58' })[kind] || 'var(--accent)'
 

@@ -4,7 +4,8 @@ import { Icon } from '@/components/ui/icon'
 import {
   IrisCard, SectionLabel, Chip, Segmented, btnReset, EmptyState,
 } from '@/components/ui/shared'
-import { irises, crosses } from '@/lib/data'
+import { crosses } from '@/lib/data'
+import { useData } from '@/lib/data-context'
 import type { Iris } from '@/types'
 
 // ─── Types ────────────────────────────────────────────────────
@@ -93,6 +94,7 @@ function CrossBanner({
 
 // ─── Collection screen ────────────────────────────────────────
 export function CollectionScreen({ go, wide, openAdd, params }: CollectionScreenProps) {
+  const { irises } = useData()
   const [filter, setFilter] = useState('All')
   const [view, setView] = useState<'grid' | 'list'>('grid')
   const [crossFilter, setCrossFilter] = useState(params?.cross)

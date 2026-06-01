@@ -2,8 +2,8 @@
 import { useState } from 'react'
 import { Icon } from '@/components/ui/icon'
 import { Sheet, btnReset, SectionLabel } from '@/components/ui/shared'
-import { irises, locations } from '@/lib/data'
 import { useIsDesktop } from '@/lib/use-is-desktop'
+import { useData } from '@/lib/data-context'
 
 interface AddIrisFlowProps {
   open: boolean
@@ -84,6 +84,7 @@ function StepDots({ step, total }: { step: number; total: number }) {
 
 export function AddIrisFlow({ open, onClose, onSaved, presetCross }: AddIrisFlowProps) {
   const isDesktop = useIsDesktop()
+  const { irises, locations, addIris } = useData()
   const [step, setStep] = useState(0)
   const [name, setName] = useState('')
   const [kind, setKind] = useState('Variety')
@@ -101,6 +102,8 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross }: AddIrisFlow
   const [loc, setLoc] = useState('')
   const [year, setYear] = useState(new Date().getFullYear().toString())
   const [notes, setNotes] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
   const irisNames = irises.map(i => i.name)
 
@@ -129,15 +132,42 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross }: AddIrisFlow
     setLoc('')
     setYear(new Date().getFullYear().toString())
     setNotes('')
+    setSaving(false)
+    setError('')
     onClose()
   }
 
-  function handleSave() {
-    onSaved(name)
-    handleClose()
+  async function handleSave() {
+    if (saving || !name.trim()) return
+    setSaving(true)
+    setError('')
+    try {
+      const isVariety = kind === 'Variety'
+      await addIris({
+        name: name.trim(),
+        kind,
+        classification: cls,
+        colorType: isVariety ? colourType : undefined,
+        podParent: podParent.trim() || undefined,
+        pollenParent: pollenParent.trim() || undefined,
+        locationId: loc || null,
+        plantedDate: year.trim() || undefined,
+        colorStandards: isVariety ? colorStandards.trim() || undefined : undefined,
+        colorFalls: isVariety ? colorFalls.trim() || undefined : undefined,
+        colorBeard: isVariety ? colorBeard.trim() || undefined : undefined,
+        colorStyleArms: isVariety ? colorStyleArms.trim() || undefined : undefined,
+        note: notes.trim() || undefined,
+      })
+      onSaved(name.trim())
+      handleClose()
+    } catch (e) {
+      console.error(e)
+      setError('Could not save. Please try again.')
+      setSaving(false)
+    }
   }
 
-  const canSave = name.trim().length > 0
+  const canSave = name.trim().length > 0 && !saving
 
   // ── Reusable field groups (shared by mobile steps + desktop single screen) ──
   const basicFields = (
@@ -247,8 +277,8 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross }: AddIrisFlow
         <label style={labelStyle}>LOCATION</label>
         <div style={{ position: 'relative' }}>
           <select style={selectStyle} value={loc} onChange={e => setLoc(e.target.value)}>
-            <option value="">— Select location —</option>
-            {locations.map(l => (<option key={l.id} value={l.name}>{l.name}</option>))}
+            <option value="">{locations.length ? '— Select location —' : '— No locations yet —'}</option>
+            {locations.map(l => (<option key={l.id} value={l.id}>{l.name}</option>))}
           </select>
           <Icon name="chevron" size={16} stroke="var(--ink-3)" style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%) rotate(90deg)', pointerEvents: 'none' }} />
         </div>
@@ -266,13 +296,18 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross }: AddIrisFlow
   )
 
   const saveButton = (
-    <button onClick={handleSave} disabled={!canSave} style={{
-      ...btnReset, width: '100%', padding: '15px', borderRadius: 14,
-      background: canSave ? 'var(--accent)' : 'var(--line)', color: '#fff', fontSize: 15.5, fontWeight: 600,
-      cursor: canSave ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-    }}>
-      <Icon name="check" size={18} stroke="#fff" sw={2.4} />Save Iris
-    </button>
+    <div>
+      {error && (
+        <div style={{ marginBottom: 10, padding: 12, background: 'var(--rose-bg)', border: '1px solid var(--rose-line)', borderRadius: 12, fontSize: 13.5, color: 'var(--rose)' }}>{error}</div>
+      )}
+      <button onClick={handleSave} disabled={!canSave} style={{
+        ...btnReset, width: '100%', padding: '15px', borderRadius: 14,
+        background: canSave ? 'var(--accent)' : 'var(--line)', color: '#fff', fontSize: 15.5, fontWeight: 600,
+        cursor: canSave ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+      }}>
+        <Icon name="check" size={18} stroke="#fff" sw={2.4} />{saving ? 'Saving…' : 'Save Iris'}
+      </button>
+    </div>
   )
 
   // ── Desktop: everything on one screen ──
