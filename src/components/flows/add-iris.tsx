@@ -89,6 +89,11 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross }: AddIrisFlow
   const [kind, setKind] = useState('Variety')
   const [cls, setCls] = useState('Tall Bearded')
   const [colourType, setColourType] = useState('Self')
+  const [advancedOpen, setAdvancedOpen] = useState(false)
+  const [colorStyleArms, setColorStyleArms] = useState('')
+  const [colorStandards, setColorStandards] = useState('')
+  const [colorFalls, setColorFalls] = useState('')
+  const [colorBeard, setColorBeard] = useState('')
   const [podParent, setPodParent] = useState(presetCross?.pod || '')
   const [pollenParent, setPollenParent] = useState(presetCross?.pollen || '')
   const [podSearch, setPodSearch] = useState('')
@@ -112,6 +117,11 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross }: AddIrisFlow
     setKind('Variety')
     setCls('Tall Bearded')
     setColourType('Self')
+    setAdvancedOpen(false)
+    setColorStyleArms('')
+    setColorStandards('')
+    setColorFalls('')
+    setColorBeard('')
     setPodParent('')
     setPollenParent('')
     setPodSearch('')
@@ -167,6 +177,34 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross }: AddIrisFlow
             </select>
             <Icon name="chevron" size={16} stroke="var(--ink-3)" style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%) rotate(90deg)', pointerEvents: 'none' }} />
           </div>
+        </div>
+      )}
+      {kind === 'Variety' && (
+        <div>
+          <button
+            type="button"
+            onClick={() => setAdvancedOpen(o => !o)}
+            style={{ ...btnReset, cursor: 'pointer', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--line)' }}
+          >
+            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink-2)' }}>Advanced options</span>
+            <Icon name="chevron" size={16} stroke="var(--ink-3)" style={{ transform: advancedOpen ? 'rotate(-90deg)' : 'rotate(90deg)', transition: 'transform .15s' }} />
+          </button>
+          {advancedOpen && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 14 }}>
+              <SectionLabel>Flower colour</SectionLabel>
+              {[
+                { label: 'STYLE ARMS', value: colorStyleArms, set: setColorStyleArms, ph: 'e.g. Violet, crested midrib' },
+                { label: 'STANDARDS', value: colorStandards, set: setColorStandards, ph: 'e.g. Deep blue-violet, velvety substance' },
+                { label: 'FALLS', value: colorFalls, set: setColorFalls, ph: 'e.g. Near-black violet, blue undertone' },
+                { label: 'BEARD', value: colorBeard, set: setColorBeard, ph: 'e.g. Yellow at throat, tipped violet' },
+              ].map(f => (
+                <div key={f.label}>
+                  <label style={labelStyle}>{f.label}</label>
+                  <input style={inputStyle} placeholder={f.ph} value={f.value} onChange={e => f.set(e.target.value)} />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </>
