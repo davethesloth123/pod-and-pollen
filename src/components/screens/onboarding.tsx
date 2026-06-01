@@ -1,9 +1,8 @@
 'use client'
 import { useState } from 'react'
 import { Icon } from '@/components/ui/icon'
-import { IrisBloom } from '@/components/ui/iris-bloom'
 import { btnReset } from '@/components/ui/shared'
-import { PAL, PLANT_TYPES, getGoals, recommendWidgets, DEFAULT_WIDGETS } from '@/lib/data'
+import { PLANT_TYPES, getGoals, recommendWidgets, DEFAULT_WIDGETS } from '@/lib/data'
 
 interface OnboardingFlowProps {
   onComplete?: (recommendedWidgets?: string[]) => void
@@ -87,8 +86,8 @@ export function OnboardingFlow({ onComplete, onDone }: OnboardingFlowProps) {
 function StepWelcome() {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', padding: '20px 0 40px' }}>
-      <div style={{ position: 'relative', width: 180, height: 180, marginBottom: 28 }}>
-        <IrisBloom s={PAL.deepPurple.s} f={PAL.deepPurple.f} beard={PAL.deepPurple.beard} r={28} />
+      <div style={{ width: 150, height: 150, borderRadius: 38, marginBottom: 28, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 16px 38px var(--accent-shadow)' }}>
+        <Icon name="iris" size={88} stroke="#fff" sw={1.5} />
       </div>
       <div className="h-display" style={{ fontWeight: 600, fontSize: 38, color: 'var(--ink)', lineHeight: 1.05, marginBottom: 14 }}>Welcome to<br />Pod &amp; Pollen</div>
       <div style={{ fontSize: 16, color: 'var(--ink-2)', lineHeight: 1.5, maxWidth: 320, marginBottom: 10 }}>
