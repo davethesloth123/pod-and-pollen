@@ -1,15 +1,14 @@
 'use client'
-import { IrisBloom } from '@/components/ui/iris-bloom'
-import { PAL } from '@/lib/data'
+import { Icon } from '@/components/ui/icon'
 
 export function AuthBg({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ position: 'relative', minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', top: -120, right: -120, width: 360, height: 360, opacity: 0.55, filter: 'blur(8px)', pointerEvents: 'none' }}>
-        <IrisBloom s={PAL.deepPurple.s} f={PAL.deepPurple.f} beard={PAL.deepPurple.beard} r={999} />
+      <div style={{ position: 'absolute', top: -60, right: -70, opacity: 0.05, pointerEvents: 'none', transform: 'rotate(14deg)' }}>
+        <Icon name="iris" size={320} stroke="var(--accent)" sw={0.8} />
       </div>
-      <div style={{ position: 'absolute', bottom: -100, left: -90, width: 280, height: 280, opacity: 0.42, filter: 'blur(10px)', pointerEvents: 'none' }}>
-        <IrisBloom s={PAL.yellowBlue.s} f={PAL.yellowBlue.f} beard={PAL.yellowBlue.beard} r={999} />
+      <div style={{ position: 'absolute', bottom: -70, left: -80, opacity: 0.05, pointerEvents: 'none', transform: 'rotate(-10deg)' }}>
+        <Icon name="iris" size={260} stroke="var(--accent)" sw={0.8} />
       </div>
       <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column' }}>{children}</div>
     </div>
