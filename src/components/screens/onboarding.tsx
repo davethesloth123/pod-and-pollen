@@ -75,7 +75,7 @@ export function OnboardingFlow({ onComplete, onDone }: OnboardingFlowProps) {
       <div style={{ padding: '14px 22px calc(env(safe-area-inset-bottom) + 28px)', borderTop: '1px solid var(--line)', background: 'var(--bg)' }}>
         <button onClick={next} style={{ ...btnReset, width: '100%', cursor: 'pointer', padding: 16, borderRadius: 15, background: 'var(--accent)', color: '#fff', fontSize: 16.5, fontWeight: 600, boxShadow: '0 6px 18px var(--accent-shadow)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
           {step === TOTAL_STEPS - 1
-            ? <>Open Pod &amp; Pollen<Icon name="chevron" size={20} stroke="#fff" sw={2.2} /></>
+            ? <>Finish Account Setup<Icon name="chevron" size={20} stroke="#fff" sw={2.2} /></>
             : <>Continue<Icon name="chevron" size={20} stroke="#fff" sw={2.2} /></>}
         </button>
       </div>
