@@ -27,26 +27,37 @@ function defaultName(code: string, i: number): string {
   return code ? `${code} ${letter}` : `Seedling ${letter}`
 }
 
+interface Row { name: string; locationId: string; gridRef: string }
+
 export function AddSeedlingsFlow({ open, cross, onClose, onSaved }: AddSeedlingsFlowProps) {
   const { locations, addSeedlings } = useData()
   const [step, setStep] = useState(0)
   const [count, setCount] = useState(3)
   const [cls, setCls] = useState('TB')
-  const [loc, setLoc] = useState('')
-  const [generation, setGeneration] = useState('F1')
-  const [names, setNames] = useState<string[]>([])
+  const [defaultLoc, setDefaultLoc] = useState('')
+  const [rows, setRows] = useState<Row[]>([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
   // Reset when (re)opened
   useEffect(() => {
-    if (open) { setStep(0); setCount(3); setCls('TB'); setLoc(''); setGeneration('F1'); setNames([]); setSaving(false); setError('') }
+    if (open) { setStep(0); setCount(3); setCls('TB'); setDefaultLoc(''); setRows([]); setSaving(false); setError('') }
   }, [open])
 
   function goNaming() {
     const code = cross?.code || ''
-    setNames(Array.from({ length: count }, (_, i) => defaultName(code, i)))
+    setRows(Array.from({ length: count }, (_, i) => ({ name: defaultName(code, i), locationId: defaultLoc, gridRef: '' })))
     setStep(1)
+  }
+
+  // Changing the shared default location pre-fills every row's location
+  function applyDefaultLoc(v: string) {
+    setDefaultLoc(v)
+    setRows(prev => prev.map(r => ({ ...r, locationId: v })))
+  }
+
+  function setRow(i: number, patch: Partial<Row>) {
+    setRows(prev => prev.map((r, j) => j === i ? { ...r, ...patch } : r))
   }
 
   function handleClose() { onClose() }
@@ -56,18 +67,18 @@ export function AddSeedlingsFlow({ open, cross, onClose, onSaved }: AddSeedlings
     setSaving(true)
     setError('')
     try {
-      const rows = names.map(n => ({
-        name: n.trim() || 'Seedling',
+      const payload = rows.map(r => ({
+        name: r.name.trim() || 'Seedling',
         classification: cls,
-        locationId: loc || null,
-        generation: generation.trim() || undefined,
+        locationId: r.locationId || null,
+        gridRef: r.gridRef.trim() || undefined,
         status: 'Growing',
         podParent: cross?.pod,
         pollenParent: cross?.pollen,
         crossId: cross?.id,
       }))
-      await addSeedlings(rows)
-      onSaved(rows.length)
+      await addSeedlings(payload)
+      onSaved(payload.length)
       handleClose()
     } catch (e) {
       console.error(e)
@@ -114,25 +125,19 @@ export function AddSeedlingsFlow({ open, cross, onClose, onSaved }: AddSeedlings
         {step === 1 && (
           <>
             <SectionLabel>Shared settings</SectionLabel>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <div style={{ flex: 1 }}>
-                <label style={labelStyle}>CLASSIFICATION</label>
-                <div style={{ position: 'relative' }}>
-                  <select style={selectStyle} value={cls} onChange={e => setCls(e.target.value)}>
-                    {CLASSIFICATIONS.map(c => (<option key={c} value={c}>{c}</option>))}
-                  </select>
-                  <Icon name="chevron" size={16} stroke="var(--ink-3)" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%) rotate(90deg)', pointerEvents: 'none' }} />
-                </div>
-              </div>
-              <div style={{ width: 96 }}>
-                <label style={labelStyle}>GEN.</label>
-                <input style={inputStyle} value={generation} onChange={e => setGeneration(e.target.value)} placeholder="F1" />
+            <div>
+              <label style={labelStyle}>CLASSIFICATION</label>
+              <div style={{ position: 'relative' }}>
+                <select style={selectStyle} value={cls} onChange={e => setCls(e.target.value)}>
+                  {CLASSIFICATIONS.map(c => (<option key={c} value={c}>{c}</option>))}
+                </select>
+                <Icon name="chevron" size={16} stroke="var(--ink-3)" style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%) rotate(90deg)', pointerEvents: 'none' }} />
               </div>
             </div>
             <div>
-              <label style={labelStyle}>LOCATION</label>
+              <label style={labelStyle}>DEFAULT LOCATION <span style={{ fontWeight: 500, textTransform: 'none', letterSpacing: 0, color: 'var(--ink-4)' }}>— applies to all, editable per seedling</span></label>
               <div style={{ position: 'relative' }}>
-                <select style={selectStyle} value={loc} onChange={e => setLoc(e.target.value)}>
+                <select style={selectStyle} value={defaultLoc} onChange={e => applyDefaultLoc(e.target.value)}>
                   <option value="">{locations.length ? '— Select location —' : '— No locations yet —'}</option>
                   {locations.map(l => (<option key={l.id} value={l.id}>{l.name}</option>))}
                 </select>
@@ -140,12 +145,24 @@ export function AddSeedlingsFlow({ open, cross, onClose, onSaved }: AddSeedlings
               </div>
             </div>
 
-            <SectionLabel>Names</SectionLabel>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {names.map((n, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ width: 26, fontSize: 13, fontWeight: 600, color: 'var(--ink-4)', flexShrink: 0, textAlign: 'right' }}>{i + 1}</span>
-                  <input style={inputStyle} value={n} onChange={e => setNames(prev => prev.map((x, j) => j === i ? e.target.value : x))} />
+            <SectionLabel>Seedlings</SectionLabel>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {rows.map((r, i) => (
+                <div key={i} style={{ border: '1px solid var(--line)', borderRadius: 12, padding: 12, background: 'var(--surface)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ width: 22, fontSize: 12.5, fontWeight: 700, color: 'var(--ink-4)', flexShrink: 0 }}>{i + 1}</span>
+                    <input style={inputStyle} placeholder="Seedling name" value={r.name} onChange={e => setRow(i, { name: e.target.value })} />
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, paddingLeft: 32 }}>
+                    <div style={{ flex: 1, position: 'relative' }}>
+                      <select style={{ ...selectStyle, fontSize: 14 }} value={r.locationId} onChange={e => setRow(i, { locationId: e.target.value })}>
+                        <option value="">— Location —</option>
+                        {locations.map(l => (<option key={l.id} value={l.id}>{l.name}</option>))}
+                      </select>
+                      <Icon name="chevron" size={14} stroke="var(--ink-3)" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%) rotate(90deg)', pointerEvents: 'none' }} />
+                    </div>
+                    <input style={{ ...inputStyle, flex: 1, fontSize: 14 }} placeholder="Grid ref" value={r.gridRef} onChange={e => setRow(i, { gridRef: e.target.value })} />
+                  </div>
                 </div>
               ))}
             </div>
@@ -157,7 +174,7 @@ export function AddSeedlingsFlow({ open, cross, onClose, onSaved }: AddSeedlings
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={() => setStep(0)} style={{ ...btnReset, flex: 1, cursor: 'pointer', padding: '14px', borderRadius: 14, border: '1px solid var(--line)', background: 'var(--surface)', fontSize: 15, fontWeight: 600, color: 'var(--ink-2)' }}>Back</button>
               <button onClick={handleSave} disabled={saving} style={{ ...btnReset, flex: 2, cursor: saving ? 'default' : 'pointer', padding: '14px', borderRadius: 14, background: 'var(--accent)', color: '#fff', fontSize: 15.5, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                <Icon name="check" size={18} stroke="#fff" sw={2.4} />{saving ? 'Saving…' : `Create ${names.length} seedling${names.length === 1 ? '' : 's'}`}
+                <Icon name="check" size={18} stroke="#fff" sw={2.4} />{saving ? 'Saving…' : `Create ${rows.length} seedling${rows.length === 1 ? '' : 's'}`}
               </button>
             </div>
           </>

@@ -463,6 +463,7 @@ export interface NewSeedling {
   name: string
   classification?: string
   locationId?: string | null
+  gridRef?: string
   generation?: string
   status?: string
   podParent?: string
@@ -477,6 +478,7 @@ export async function insertSeedlings(supabase: SupabaseClient, userId: string, 
     kind: 'Seedling',
     classification: r.classification || null,
     location_id: r.locationId || null,
+    grid_ref: r.gridRef || null,
     generation: r.generation || null,
     status: r.status || 'Growing',
     pod_parent: r.podParent || null,

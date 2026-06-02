@@ -392,8 +392,7 @@ export function CrossDetailScreen({ id, go, wide, openAddSeedlings }: {
           <EmptyState
             icon="sprout"
             title="No seedlings yet"
-            body="Add seedlings from this cross to track their progress."
-            action={openAddSeedlings ? { label: 'Add seedlings', onClick: () => openAddSeedlings(cross) } : undefined}
+            body="Use the button below to add seedlings from this cross and track their progress."
           />
         ) : (
           <div style={{
@@ -412,18 +411,18 @@ export function CrossDetailScreen({ id, go, wide, openAddSeedlings }: {
         )}
       </div>
 
-      {/* Add seedlings */}
-      <div style={{ padding: '20px 18px 32px' }}>
+      {/* Add seedlings (single, central) */}
+      <div style={{ padding: '20px 18px 32px', display: 'flex', justifyContent: 'center' }}>
         <button
           onClick={() => openAddSeedlings && openAddSeedlings(cross)}
           style={{
-            ...btnReset, width: '100%', cursor: 'pointer',
-            padding: '14px', borderRadius: 14, background: 'var(--accent)', color: '#fff',
-            fontSize: 15, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            boxShadow: '0 4px 14px var(--accent-shadow)',
+            ...btnReset, cursor: 'pointer',
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            padding: '11px 20px', borderRadius: 999, background: 'var(--accent)', color: '#fff',
+            fontSize: 14.5, fontWeight: 600, boxShadow: '0 4px 14px var(--accent-shadow)',
           }}
         >
-          <Icon name="sprout" size={18} stroke="#fff" sw={2.2} />
+          <Icon name="sprout" size={17} stroke="#fff" sw={2.2} />
           Add seedlings
         </button>
       </div>

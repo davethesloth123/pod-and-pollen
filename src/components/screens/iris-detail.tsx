@@ -111,67 +111,26 @@ function ColourDefinitionCard({ iris }: { iris: Iris }) {
   const c = iris.colorDef
   if (!c) return null
 
-  const pal = PAL[iris.pal] || PAL.deepPurple
+  const rows = [
+    { label: 'Standards', value: c.standards },
+    { label: 'Falls', value: c.falls },
+    { label: 'Beard', value: c.beard },
+    { label: 'Style arms', value: c.styleArms },
+  ].filter(r => r.value)
 
-  const parts = [
-    { label: 'Standards', color: pal.s[0] },
-    { label: 'Falls',     color: pal.f[0] },
-    { label: 'Beard',     color: pal.beard },
-  ]
+  if (rows.length === 0) return null
 
   return (
-    <div
-      style={{
-        margin: '0 18px',
-        padding: 14,
-        background: 'var(--surface)',
-        borderRadius: 16,
-        border: '1px solid var(--line)',
-      }}
-    >
+    <div style={{ margin: '0 18px' }}>
       <SectionLabel>Colour</SectionLabel>
-      <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
-        {parts.map(({ label, color }) => (
-          <div key={label} style={{ flex: 1 }}>
-            <div
-              style={{
-                height: 40,
-                borderRadius: 10,
-                background: color,
-                border: '1px solid var(--line)',
-              }}
-            />
-            <div
-              style={{
-                fontSize: 11.5,
-                color: 'var(--ink-3)',
-                marginTop: 4,
-                textAlign: 'center',
-              }}
-            >
-              {label}
-            </div>
+      <div style={{ background: 'var(--surface)', borderRadius: 16, border: '1px solid var(--line)', padding: '4px 14px' }}>
+        {rows.map((r, i) => (
+          <div key={r.label} style={{ padding: '11px 0', borderBottom: i < rows.length - 1 ? '1px solid var(--line)' : 'none' }}>
+            <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 0.3, textTransform: 'uppercase', color: 'var(--ink-4)', marginBottom: 3 }}>{r.label}</div>
+            <div style={{ fontSize: 14, color: 'var(--ink)', lineHeight: 1.45 }}>{r.value}</div>
           </div>
         ))}
       </div>
-      {c.standards && (
-        <div style={{ fontSize: 13, color: 'var(--ink-2)', marginTop: 6, lineHeight: 1.5 }}>
-          <span style={{ fontWeight: 600, color: 'var(--ink-3)', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.2 }}>Std </span>
-          {c.standards}
-        </div>
-      )}
-      {c.falls && (
-        <div style={{ fontSize: 13, color: 'var(--ink-2)', marginTop: 4, lineHeight: 1.5 }}>
-          <span style={{ fontWeight: 600, color: 'var(--ink-3)', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.2 }}>Falls </span>
-          {c.falls}
-        </div>
-      )}
-      {c.beard && (
-        <div style={{ fontSize: 13, color: 'var(--ink-2)', marginTop: 4, lineHeight: 1.5 }}>
-          <span style={{ fontWeight: 600, color: 'var(--ink-3)', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.2 }}>Beard </span>
-          {c.beard}
-        </div>
-      )}
     </div>
   )
 }
@@ -863,11 +822,22 @@ export function IrisDetailScreen({
             {iris.cls} · {iris.loc}
           </div>
         </div>
-        <StatusBadge status={iris.status} />
       </div>
 
-      {/* ── Management bar: status / favourite / edit / delete ── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderBottom: '1px solid var(--line)', flexWrap: 'wrap' }}>
+      {/* ── Hero image (always at the very top) ── */}
+      <div
+        style={{
+          position: 'relative',
+          width: '100%',
+          aspectRatio: '16/10',
+          background: 'var(--surface-2)',
+        }}
+      >
+        <IrisThumb iris={iris} r={0} />
+      </div>
+
+      {/* ── Controls: status / favourite / edit / delete (below the image, right-aligned) ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, padding: '12px 16px', borderBottom: '1px solid var(--line)', flexWrap: 'wrap' }}>
         <div style={{ position: 'relative' }}>
           <select
             value={iris.status}
@@ -894,8 +864,6 @@ export function IrisDetailScreen({
           <Icon name="sliders" size={15} stroke="var(--ink-2)" sw={1.9} />Edit
         </button>
 
-        <div style={{ flex: 1 }} />
-
         {!confirmDelete ? (
           <button
             onClick={() => setConfirmDelete(true)}
@@ -910,18 +878,6 @@ export function IrisDetailScreen({
             <button onClick={async () => { try { await deleteIris(iris.id); toast('Plant deleted'); go(-1) } catch { toast('Could not delete') } }} style={{ ...btnReset, cursor: 'pointer', padding: '8px 12px', borderRadius: 10, background: 'var(--rose)', color: '#fff', fontSize: 13, fontWeight: 600 }}>Delete plant</button>
           </div>
         )}
-      </div>
-
-      {/* ── Hero thumbnail ── */}
-      <div
-        style={{
-          position: 'relative',
-          width: '100%',
-          aspectRatio: '16/10',
-          background: 'var(--surface-2)',
-        }}
-      >
-        <IrisThumb iris={iris} r={0} />
       </div>
 
       {/* ── Identity section ── */}
@@ -939,63 +895,35 @@ export function IrisDetailScreen({
           {iris.name}
         </div>
         <div style={{ fontSize: 14, color: 'var(--ink-3)', marginTop: 5 }}>
-          {iris.cls}
-          {iris.loc && ` · ${iris.loc}`}
-          {iris.planted && ` · Planted ${iris.planted}`}
+          {iris.kind}
         </div>
 
         {/* Parent chips */}
         {iris.podParent && (
-          <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
             <ParentChip role="Pod" name={iris.podParent} go={go} />
             <ParentChip role="Pollen" name={iris.pollenParent} go={go} />
           </div>
         )}
 
-        {/* Quick facts */}
-        <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-          {iris.height && iris.height !== '—' && (
-            <span
-              style={{
-                fontSize: 12.5,
-                color: 'var(--ink-3)',
-                padding: '4px 10px',
-                borderRadius: 999,
-                background: 'var(--surface-2)',
-                border: '1px solid var(--line)',
-              }}
-            >
-              {Number.isFinite(parseInt(iris.height!, 10)) ? fmtH(parseInt(iris.height!, 10)) : iris.height}
-            </span>
-          )}
-          {iris.season && iris.season !== '—' && (
-            <span
-              style={{
-                fontSize: 12.5,
-                color: 'var(--ink-3)',
-                padding: '4px 10px',
-                borderRadius: 999,
-                background: 'var(--surface-2)',
-                border: '1px solid var(--line)',
-              }}
-            >
-              {iris.season}
-            </span>
-          )}
-          {iris.fragrance && iris.fragrance !== '—' && (
-            <span
-              style={{
-                fontSize: 12.5,
-                color: 'var(--ink-3)',
-                padding: '4px 10px',
-                borderRadius: 999,
-                background: 'var(--surface-2)',
-                border: '1px solid var(--line)',
-              }}
-            >
-              {iris.fragrance} fragrance
-            </span>
-          )}
+        {/* Clean spec list */}
+        <div style={{ marginTop: 16, borderTop: '1px solid var(--line)' }}>
+          {([
+            { label: 'Classification', value: iris.cls },
+            iris.colorType ? { label: 'Colour type', value: iris.colorType } : null,
+            (iris.loc || iris.gridRef) ? { label: 'Location', value: [iris.loc, iris.gridRef].filter(Boolean).join(' · ') } : null,
+            iris.planted ? { label: 'Planted', value: iris.planted } : null,
+            (iris.height && iris.height !== '—') ? { label: 'Height', value: Number.isFinite(parseInt(iris.height, 10)) ? fmtH(parseInt(iris.height, 10)) : iris.height } : null,
+            (iris.season && iris.season !== '—') ? { label: 'Flowering', value: iris.season } : null,
+            (iris.fragrance && iris.fragrance !== '—') ? { label: 'Fragrance', value: iris.fragrance } : null,
+            iris.breeder ? { label: 'Breeder', value: iris.breeder } : null,
+            iris.yearReleased ? { label: 'Year released', value: String(iris.yearReleased) } : null,
+          ].filter(Boolean) as { label: string; value: string }[]).map(f => (
+            <div key={f.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 16, padding: '9px 0', borderBottom: '1px solid var(--line)' }}>
+              <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-4)' }}>{f.label}</span>
+              <span style={{ fontSize: 14, color: 'var(--ink)', fontWeight: 500, textAlign: 'right' }}>{f.value}</span>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -1058,7 +986,7 @@ export function IrisDetailScreen({
         />
         <ActionButton
           icon="dna"
-          label="Record pollination"
+          label="Create cross"
           onClick={() => openPollination(iris)}
         />
         <ActionButton

@@ -222,12 +222,15 @@ export const LIFECYCLE: Omit<LifecycleStep, 'state' | 'detail'>[] = [
   { key: 'outcome',    label: 'Outcome',                icon: 'tag',     short: 'Retain · name · register' },
 ]
 
+// A seedling's own lifecycle excludes the cross/seed stages (those live on the cross record)
+const SEEDLING_SKIP = new Set(['cross', 'seedpod', 'seedbatch', 'seedling'])
+
 export function lifecycleFor(iris: Iris): LifecycleStep[] {
-  const steps: LifecycleStep[] = LIFECYCLE.map(s => ({ ...s, state: 'na', detail: '' }))
-  const set = (key: string, state: LifecycleStep['state'], detail: string) => {
-    const st = steps.find(s => s.key === key); if (st) { st.state = state; st.detail = detail }
-  }
   if (iris.kind === 'Variety') {
+    const steps: LifecycleStep[] = LIFECYCLE.map(s => ({ ...s, state: 'na', detail: '' }))
+    const set = (key: string, state: LifecycleStep['state'], detail: string) => {
+      const st = steps.find(s => s.key === key); if (st) { st.state = state; st.detail = detail }
+    }
     set('variety', 'done', `Added ${iris.planted}`)
     set('parentage',
       iris.podParent && iris.podParent !== 'Unknown' ? 'done' : 'na',
@@ -236,17 +239,14 @@ export function lifecycleFor(iris: Iris): LifecycleStep[] {
     set('firstflower', 'done', iris.firstFlower ? `First flowered ${iris.firstFlower}` : '')
     return steps
   }
-  // Seedling — rich lifecycle
-  const x = iris.cross ? crosses[iris.cross] : null
-  const b = iris.seedBatch ? seedBatches[iris.seedBatch] : null
+  // Seedling — milestones that matter for the individual plant
+  const steps: LifecycleStep[] = LIFECYCLE.filter(s => !SEEDLING_SKIP.has(s.key)).map(s => ({ ...s, state: 'na', detail: '' }))
+  const set = (key: string, state: LifecycleStep['state'], detail: string) => {
+    const st = steps.find(s => s.key === key); if (st) { st.state = state; st.detail = detail }
+  }
   set('variety', 'done', `Seedling ${iris.name}`)
-  set('parentage', 'done', `${iris.podParent} × ${iris.pollenParent}`)
-  if (x) set('cross', 'done', `${x.code} · ${x.date}`)
-  if (b?.harvest) set('seedpod', 'done', `Harvested ${b.harvest} · ${b.seeds} seeds`)
-  if (b?.sown) set('seedbatch', 'done', `Sown ${b.sown}`)
-  if (b?.germ && b.germ !== 'pending') set('germ', 'done', `${b.germinated} of ${b.seeds} germinated (${b.germPct}%)`)
-  if (b?.plantedOut) set('seedling', 'done', `Planted out ${b.plantedOut}`)
-  if (iris.firstFlower) set('firstflower', 'done', `First flower ${iris.firstFlower}`)
+  if (iris.podParent) set('parentage', 'done', `${iris.podParent} × ${iris.pollenParent}`)
+  if (iris.firstFlower || iris.status === 'Flowering' || iris.status === 'First flower') set('firstflower', 'done', iris.firstFlower ? `First flower ${iris.firstFlower}` : 'Flowered')
   const evals = iris.evaluations || []
   if (evals.length > 0) set('evaluation', 'done', `${evals.length} evaluation${evals.length > 1 ? 's' : ''}`)
   return steps
