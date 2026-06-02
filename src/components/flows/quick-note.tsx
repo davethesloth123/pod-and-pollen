@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { Icon } from '@/components/ui/icon'
-import { Sheet, btnReset } from '@/components/ui/shared'
+import { Sheet, btnReset, IrisContextHeader } from '@/components/ui/shared'
 import { useData } from '@/lib/data-context'
 import type { Iris } from '@/types'
 
@@ -156,12 +156,7 @@ export function QuickNoteFlow({ open, iris, onClose, onSaved }: QuickNoteFlowPro
           </div>
         )}
 
-        {iris && (
-          <div style={{ padding: '10px 13px', borderRadius: 12, background: 'var(--accent-bg)', border: '1px solid var(--accent-line)', display: 'flex', alignItems: 'center', gap: 9 }}>
-            <Icon name="flower" size={16} stroke="var(--accent)" sw={2} />
-            <span style={{ fontSize: 15, fontWeight: 500, color: 'var(--accent)' }}>{iris.name}</span>
-          </div>
-        )}
+        {iris && <IrisContextHeader iris={iris} label="Note for" />}
 
         <div>
           <label style={labelStyle}>NOTE</label>

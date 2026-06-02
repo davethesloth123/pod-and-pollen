@@ -29,6 +29,7 @@ import { EvaluationFlow } from '@/components/flows/evaluation'
 import { EvalHistorySheet } from '@/components/flows/eval-history'
 import { RecordFloweringFlow } from '@/components/flows/record-flowering'
 import { RecordPollinationFlow } from '@/components/flows/record-pollination'
+import { AddSeedlingsFlow } from '@/components/flows/add-seedlings'
 import { PhotoViewer } from '@/components/flows/photo-viewer'
 import { Toast } from '@/components/ui/shared'
 
@@ -419,8 +420,7 @@ export function AppShell() {
           <CrossDetailScreen
             {...commonProps}
             id={params.id}
-            openPollination={() => setSheet({ kind: 'pollination' })}
-            openAddSeedling={() => setSheet({ kind: 'add' })}
+            openAddSeedlings={(cross: any) => setSheet({ kind: 'seedlings', cross })}
           />
         )
       case 'compare':
@@ -553,7 +553,15 @@ export function AppShell() {
         open={sheet?.kind === 'pollination'}
         iris={sheet?.iris}
         onClose={closeSheet}
-        onSaved={(other: string) => { closeSheet(); toast(`Cross recorded with ${other}`) }}
+        onSaved={(other: string) => { closeSheet(); toast(`Cross created with ${other}`) }}
+      />
+
+      {/* Add seedlings (batch, from a cross) */}
+      <AddSeedlingsFlow
+        open={sheet?.kind === 'seedlings'}
+        cross={sheet?.cross}
+        onClose={closeSheet}
+        onSaved={(n: number) => { closeSheet(); toast(`${n} seedling${n === 1 ? '' : 's'} added`) }}
       />
 
       {/* Photo viewer */}

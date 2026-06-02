@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Location, Iris, IrisKind, IrisStatus, IrisNote, FloweringRecord, EvalRecord, Cross } from '@/types'
+import type { Location, Iris, IrisKind, IrisStatus, IrisNote, FloweringRecord, EvalRecord, Cross, SeedBatch } from '@/types'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -365,6 +365,7 @@ export interface NewCross {
   date?: string
   goal?: string
   notes?: string
+  status?: string
 }
 
 export async function fetchCrosses(supabase: SupabaseClient, userId: string): Promise<Cross[]> {
@@ -391,12 +392,100 @@ export async function insertCross(supabase: SupabaseClient, userId: string, inpu
       pollination_date: input.date || null,
       goal: input.goal || null,
       notes: input.notes || null,
-      status: 'Sown',
+      status: input.status || 'Pollinated',
     })
     .select()
     .single()
   if (error) throw error
   return dbToCross(data)
+}
+
+// ─── Seed batches (one per cross) ─────────────────────────────
+export function dbToSeedBatch(row: any): SeedBatch {
+  return {
+    id: row.id,
+    cross: row.cross_id,
+    harvest: row.harvest_date ?? undefined,
+    seeds: row.seeds_count ?? undefined,
+    treatment: row.treatment ?? undefined,
+    sown: row.sown_date ?? undefined,
+    germ: row.germ_date ?? undefined,
+    germinated: row.germinated ?? undefined,
+    germPct: row.germ_pct ?? undefined,
+    repot: row.repot_date ?? undefined,
+    plantedOut: row.planted_out_date ?? undefined,
+    transplanted: row.transplanted ?? undefined,
+    retained: row.retained ?? undefined,
+    named: row.named ?? undefined,
+  }
+}
+
+export interface SeedBatchPatch {
+  harvest?: string; seeds?: number | null; treatment?: string; sown?: string
+  germ?: string; germinated?: number | null; germPct?: number | null
+  plantedOut?: string; transplanted?: number | null
+}
+
+export async function fetchSeedBatches(supabase: SupabaseClient, userId: string): Promise<SeedBatch[]> {
+  const { data, error } = await supabase.from('seed_batches').select('*').eq('user_id', userId)
+  if (error) throw error
+  return (data ?? []).map(dbToSeedBatch)
+}
+
+const BATCH_COL_MAP: Record<string, string> = {
+  harvest: 'harvest_date', seeds: 'seeds_count', treatment: 'treatment', sown: 'sown_date',
+  germ: 'germ_date', germinated: 'germinated', germPct: 'germ_pct',
+  plantedOut: 'planted_out_date', transplanted: 'transplanted',
+}
+
+// Upsert the single seed batch for a cross (find existing → update, else insert)
+export async function saveSeedBatch(supabase: SupabaseClient, userId: string, crossId: string, patch: SeedBatchPatch): Promise<SeedBatch> {
+  const col: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(patch)) {
+    if (v === undefined) continue
+    const c = BATCH_COL_MAP[k]
+    if (!c) continue
+    col[c] = v === '' ? null : v
+  }
+  const { data: existing } = await supabase.from('seed_batches').select('id').eq('user_id', userId).eq('cross_id', crossId).maybeSingle()
+  if (existing?.id) {
+    const { data, error } = await supabase.from('seed_batches').update(col).eq('id', existing.id).eq('user_id', userId).select().single()
+    if (error) throw error
+    return dbToSeedBatch(data)
+  }
+  const { data, error } = await supabase.from('seed_batches').insert({ user_id: userId, cross_id: crossId, ...col }).select().single()
+  if (error) throw error
+  return dbToSeedBatch(data)
+}
+
+// ─── Bulk seedling creation (from a cross) ────────────────────
+export interface NewSeedling {
+  name: string
+  classification?: string
+  locationId?: string | null
+  generation?: string
+  status?: string
+  podParent?: string
+  pollenParent?: string
+  crossId?: string
+}
+
+export async function insertSeedlings(supabase: SupabaseClient, userId: string, rows: NewSeedling[]): Promise<Iris[]> {
+  const payload = rows.map(r => ({
+    user_id: userId,
+    name: r.name,
+    kind: 'Seedling',
+    classification: r.classification || null,
+    location_id: r.locationId || null,
+    generation: r.generation || null,
+    status: r.status || 'Growing',
+    pod_parent: r.podParent || null,
+    pollen_parent: r.pollenParent || null,
+    cross_id: r.crossId || null,
+  }))
+  const { data, error } = await supabase.from('irises').insert(payload).select('*, location:locations(name)')
+  if (error) throw error
+  return (data ?? []).map(dbToIris)
 }
 
 // ─── Updates & deletes ────────────────────────────────────────

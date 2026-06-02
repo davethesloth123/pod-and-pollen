@@ -140,6 +140,7 @@ export interface SeedBatch {
   germPct?: number
   repot?: string
   plantedOut?: string
+  transplanted?: number
   retained?: number
   named?: number
 }

@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { Icon } from '@/components/ui/icon'
-import { Sheet, btnReset, SectionLabel } from '@/components/ui/shared'
+import { Sheet, btnReset, SectionLabel, IrisContextHeader } from '@/components/ui/shared'
 import { useData } from '@/lib/data-context'
 import type { Iris } from '@/types'
 
@@ -72,6 +72,7 @@ export function RecordPollinationFlow({ open, iris, onClose, onSaved }: RecordPo
   const [date, setDate] = useState(todayStr())
   const [notes, setNotes] = useState('')
   const [goal, setGoal] = useState('')
+  const [codeInput, setCodeInput] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -88,6 +89,7 @@ export function RecordPollinationFlow({ open, iris, onClose, onSaved }: RecordPo
     setDate(todayStr())
     setNotes('')
     setGoal('')
+    setCodeInput('')
     setSaving(false)
     setError('')
     onClose()
@@ -103,7 +105,7 @@ export function RecordPollinationFlow({ open, iris, onClose, onSaved }: RecordPo
     try {
       const year = (date.split('-')[0]) || String(new Date().getFullYear())
       const seq = crosses.filter(c => c.season === year).length + 1
-      const code = `${year.slice(2)}-${String(seq).padStart(2, '0')}`
+      const code = codeInput.trim() || `${year.slice(2)}-${String(seq).padStart(2, '0')}`
       const findId = (n: string) => irises.find(i => i.name === n)?.id ?? null
       await addCross({
         code,
@@ -128,18 +130,23 @@ export function RecordPollinationFlow({ open, iris, onClose, onSaved }: RecordPo
   const canSave = !saving && (iris ? partner.trim().length > 0 : (podPick.trim().length > 0 && pollenPick.trim().length > 0))
 
   return (
-    <Sheet open={open} onClose={handleClose} title="Record pollination">
+    <Sheet open={open} onClose={handleClose} title="Create cross">
       <div style={{ padding: '4px 18px 28px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-        {iris && (
-          <div style={{ padding: '10px 13px', borderRadius: 12, background: 'var(--accent-bg)', border: '1px solid var(--accent-line)', display: 'flex', alignItems: 'center', gap: 9 }}>
-            <Icon name="flower" size={16} stroke="var(--accent)" sw={2} />
-            <span style={{ fontSize: 15, fontWeight: 500, color: 'var(--accent)' }}>{iris.name}</span>
-          </div>
-        )}
+        {iris && <IrisContextHeader iris={iris} label="Parent plant" />}
 
         <div>
           <SectionLabel>Cross details</SectionLabel>
+        </div>
+
+        <div>
+          <label style={labelStyle}>CROSS CODE</label>
+          <input
+            style={inputStyle}
+            placeholder="Optional — auto-generated if left blank"
+            value={codeInput}
+            onChange={e => setCodeInput(e.target.value)}
+          />
         </div>
 
         {iris ? (
@@ -228,8 +235,8 @@ export function RecordPollinationFlow({ open, iris, onClose, onSaved }: RecordPo
             marginTop: 4,
           }}
         >
-          <Icon name="droplet" size={18} stroke="#fff" sw={2} />
-          {saving ? 'Saving…' : 'Record Cross'}
+          <Icon name="dna" size={18} stroke="#fff" sw={2} />
+          {saving ? 'Saving…' : 'Create cross'}
         </button>
       </div>
     </Sheet>

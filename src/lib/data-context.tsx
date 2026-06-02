@@ -1,7 +1,7 @@
 'use client'
 import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { Location, Iris, Cross } from '@/types'
+import type { Location, Iris, Cross, SeedBatch } from '@/types'
 import {
   fetchLocations, insertLocation, type NewLocation,
   fetchIrises, insertIris, type NewIris,
@@ -12,6 +12,8 @@ import {
   updateIris as dbUpdateIris, deleteIris as dbDeleteIris, type IrisPatch,
   updateLocation as dbUpdateLocation, deleteLocation as dbDeleteLocation, type LocationPatch,
   deleteNote as dbDeleteNote,
+  fetchSeedBatches, saveSeedBatch as dbSaveSeedBatch, type SeedBatchPatch,
+  insertSeedlings, type NewSeedling,
 } from '@/lib/db/queries'
 
 export interface RecentActivity { irisId: string; irisName: string; d: string; t: string; x: string; ts: string }
@@ -34,6 +36,9 @@ interface DataContextValue {
   addFlowering: (input: NewFlowering & { setStatus?: string }) => Promise<void>
   addEvaluation: (input: NewEval) => Promise<void>
   addCross: (input: NewCross) => Promise<void>
+  seedBatchFor: (crossId: string) => SeedBatch | undefined
+  saveSeedBatch: (crossId: string, patch: SeedBatchPatch) => Promise<void>
+  addSeedlings: (rows: NewSeedling[]) => Promise<void>
   updateIris: (id: string, patch: IrisPatch) => Promise<void>
   deleteIris: (id: string) => Promise<void>
   setStatus: (id: string, status: string) => Promise<void>
@@ -55,6 +60,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [flowering, setFlowering] = useState<FloweringRow[]>([])
   const [evals, setEvals] = useState<EvalRow[]>([])
   const [crosses, setCrosses] = useState<Cross[]>([])
+  const [seedBatches, setSeedBatches] = useState<SeedBatch[]>([])
   const [units, setUnitsState] = useState<Units>('cm')
 
   useEffect(() => {
@@ -69,13 +75,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setReady(true); return }
     try {
-      const [locs, iris, ns, fl, ev, xs] = await Promise.all([
+      const [locs, iris, ns, fl, ev, xs, sb] = await Promise.all([
         fetchLocations(supabase, user.id),
         fetchIrises(supabase, user.id),
         fetchNotes(supabase, user.id),
         fetchFlowering(supabase, user.id),
         fetchEvaluations(supabase, user.id),
         fetchCrosses(supabase, user.id),
+        fetchSeedBatches(supabase, user.id),
       ])
       setRawLocations(locs)
       setRawIrises(iris)
@@ -83,6 +90,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setFlowering(fl)
       setEvals(ev)
       setCrosses(xs)
+      setSeedBatches(sb)
     } catch (e) {
       console.error('Failed to load data', e)
     }
@@ -170,6 +178,23 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setCrosses(prev => [cross, ...prev])
   }, [supabase, requireUser])
 
+  const seedBatchFor = useCallback((crossId: string) => seedBatches.find(b => b.cross === crossId), [seedBatches])
+
+  const saveSeedBatch = useCallback(async (crossId: string, patch: SeedBatchPatch) => {
+    const user = await requireUser()
+    const batch = await dbSaveSeedBatch(supabase, user.id, crossId, patch)
+    setSeedBatches(prev => {
+      const rest = prev.filter(b => b.id !== batch.id && b.cross !== crossId)
+      return [...rest, batch]
+    })
+  }, [supabase, requireUser])
+
+  const addSeedlings = useCallback(async (rows: NewSeedling[]) => {
+    const user = await requireUser()
+    const created = await insertSeedlings(supabase, user.id, rows)
+    setRawIrises(prev => [...created, ...prev])
+  }, [supabase, requireUser])
+
   const updateIris = useCallback(async (id: string, patch: IrisPatch) => {
     const user = await requireUser()
     const updated = await dbUpdateIris(supabase, user.id, id, patch)
@@ -238,10 +263,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<DataContextValue>(() => ({
     ready, locations, irises, crosses, recent, units, setUnits, byId, crossStats,
     addLocation, addIris, addNote, addFlowering, addEvaluation, addCross,
+    seedBatchFor, saveSeedBatch, addSeedlings,
     updateIris, deleteIris, setStatus, toggleFav, updateLocation, deleteLocation, deleteNote,
     refresh: load,
   }), [ready, locations, irises, crosses, recent, units, setUnits, byId, crossStats,
     addLocation, addIris, addNote, addFlowering, addEvaluation, addCross,
+    seedBatchFor, saveSeedBatch, addSeedlings,
     updateIris, deleteIris, setStatus, toggleFav, updateLocation, deleteLocation, deleteNote, load])
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>

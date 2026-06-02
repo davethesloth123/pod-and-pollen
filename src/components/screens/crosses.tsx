@@ -5,6 +5,7 @@ import { IrisThumb, IrisCard, SectionLabel, Chip, Segmented, btnReset, EmptyStat
 import { IrisBloom } from '@/components/ui/iris-bloom'
 import { PAL } from '@/lib/data'
 import { useData } from '@/lib/data-context'
+import { SeedBatchCard } from '@/components/screens/seed-batch-card'
 import type { Iris, Cross } from '@/types'
 
 // ── Status badge for cross status ────────────────────────────
@@ -227,12 +228,11 @@ export function CrossesScreen({ go, wide, openAdd, openNewCross }: {
 }
 
 // ── CrossDetailScreen ─────────────────────────────────────────
-export function CrossDetailScreen({ id, go, wide, openPollination, openAddSeedling }: {
+export function CrossDetailScreen({ id, go, wide, openAddSeedlings }: {
   id: string
   go: (screen: string, params?: Record<string, unknown>) => void
   wide?: boolean
-  openPollination?: () => void
-  openAddSeedling?: () => void
+  openAddSeedlings?: (cross: Cross) => void
 }) {
   const { crosses, irises, crossStats } = useData()
   const cross = crosses.find(c => c.id === id)
@@ -382,6 +382,9 @@ export function CrossDetailScreen({ id, go, wide, openPollination, openAddSeedli
         </div>
       </div>
 
+      {/* Seed batch & progress */}
+      <SeedBatchCard cross={cross} />
+
       {/* Seedlings */}
       <div style={{ padding: '22px 18px 0' }}>
         <SectionLabel>{seedlings.length} seedlings</SectionLabel>
@@ -390,7 +393,7 @@ export function CrossDetailScreen({ id, go, wide, openPollination, openAddSeedli
             icon="sprout"
             title="No seedlings yet"
             body="Add seedlings from this cross to track their progress."
-            action={openAddSeedling ? { label: 'Add seedling', onClick: openAddSeedling } : undefined}
+            action={openAddSeedlings ? { label: 'Add seedlings', onClick: () => openAddSeedlings(cross) } : undefined}
           />
         ) : (
           <div style={{
@@ -409,31 +412,19 @@ export function CrossDetailScreen({ id, go, wide, openPollination, openAddSeedli
         )}
       </div>
 
-      {/* Action buttons */}
-      <div style={{ display: 'flex', gap: 10, padding: '20px 18px 32px' }}>
+      {/* Add seedlings */}
+      <div style={{ padding: '20px 18px 32px' }}>
         <button
-          onClick={openAddSeedling}
+          onClick={() => openAddSeedlings && openAddSeedlings(cross)}
           style={{
-            ...btnReset, flex: 1, cursor: 'pointer',
-            padding: '13px', borderRadius: 14, background: 'var(--accent)', color: '#fff',
-            fontSize: 14.5, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            ...btnReset, width: '100%', cursor: 'pointer',
+            padding: '14px', borderRadius: 14, background: 'var(--accent)', color: '#fff',
+            fontSize: 15, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             boxShadow: '0 4px 14px var(--accent-shadow)',
           }}
         >
-          <Icon name="plus" size={18} stroke="#fff" sw={2.2} />
-          Add seedling
-        </button>
-        <button
-          onClick={openPollination}
-          style={{
-            ...btnReset, flex: 1, cursor: 'pointer',
-            padding: '13px', borderRadius: 14, background: 'var(--surface)', color: 'var(--ink-2)',
-            fontSize: 14.5, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)',
-          }}
-        >
-          <Icon name="droplet" size={18} stroke="var(--ink-2)" sw={2} />
-          Pollination
+          <Icon name="sprout" size={18} stroke="#fff" sw={2.2} />
+          Add seedlings
         </button>
       </div>
     </div>

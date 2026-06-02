@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { Icon } from '@/components/ui/icon'
-import { Sheet, btnReset, SectionLabel, RatingDots } from '@/components/ui/shared'
+import { Sheet, btnReset, SectionLabel, RatingDots, IrisContextHeader } from '@/components/ui/shared'
 import { useData } from '@/lib/data-context'
 import type { Iris } from '@/types'
 
@@ -112,17 +112,7 @@ export function EvaluationFlow({ open, iris, onClose, onSaved }: EvaluationFlowP
     <Sheet open={open} onClose={handleClose} title="Evaluation">
       <div style={{ padding: '4px 18px 28px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-        {iris && (
-          <div style={{ padding: '10px 13px', borderRadius: 12, background: 'var(--accent-bg)', border: '1px solid var(--accent-line)', display: 'flex', alignItems: 'center', gap: 9 }}>
-            <Icon name="flower" size={16} stroke="var(--accent)" sw={2} />
-            <span style={{ fontSize: 15, fontWeight: 500, color: 'var(--accent)' }}>{iris.name}</span>
-            {avg !== undefined && (
-              <span style={{ marginLeft: 'auto', fontSize: 13.5, fontWeight: 700, color: 'var(--accent)' }}>
-                Avg {avg} / 5
-              </span>
-            )}
-          </div>
-        )}
+        {iris && <IrisContextHeader iris={iris} label="Evaluating" />}
 
         <div>
           <SectionLabel>Ratings</SectionLabel>

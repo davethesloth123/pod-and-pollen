@@ -6,7 +6,7 @@ import {
   IrisThumb, SectionLabel, RatingDots, LifecycleRail,
   btnReset, StatusBadge,
 } from '@/components/ui/shared'
-import { crossesList, PAL, lifecycleFor, latestEval } from '@/lib/data'
+import { PAL, lifecycleFor, latestEval } from '@/lib/data'
 import { useData } from '@/lib/data-context'
 import type { Iris, IrisNote, LifecycleStep } from '@/types'
 
@@ -606,6 +606,24 @@ function SeedlingsStrip({
 }
 
 // ─── Crosses strip ────────────────────────────────────────────
+function CrossRow({ cross, go }: { cross: import('@/types').Cross; go: (view: string | number, params?: Record<string, any>) => void }) {
+  return (
+    <button onClick={() => go('crossDetail', { id: cross.id })} style={{ ...btnReset, cursor: 'pointer', width: '100%', textAlign: 'left' }}>
+      <div style={{ padding: '11px 13px', background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <span style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--accent-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Icon name="dna" size={18} stroke="var(--accent)" sw={2} />
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--accent)', letterSpacing: 0.2 }}>{cross.code}</div>
+          <div style={{ fontSize: 13, color: 'var(--ink-3)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cross.pod} × {cross.pollen}</div>
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--ink-4)', flexShrink: 0 }}>{cross.season}</div>
+        <Icon name="chevron" size={16} stroke="var(--ink-4)" />
+      </div>
+    </button>
+  )
+}
+
 function CrossesSection({
   iris,
   go,
@@ -613,100 +631,29 @@ function CrossesSection({
   iris: Iris
   go: (view: string | number, params?: Record<string, any>) => void
 }) {
-  const related = crossesList().filter(
-    (x) => x.pod === iris.name || x.pollen === iris.name,
-  )
-  if (related.length === 0) return null
+  const { crosses } = useData()
+  const asPod = crosses.filter(x => x.pod === iris.name)
+  const asPollen = crosses.filter(x => x.pollen === iris.name)
+  if (asPod.length === 0 && asPollen.length === 0) return null
 
   return (
     <div style={{ margin: '22px 18px 0' }}>
-      <SectionLabel>Crosses involving this plant</SectionLabel>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {related.map((cross) => {
-          const isPod = cross.pod === iris.name
-          return (
-            <button
-              key={cross.id}
-              onClick={() => go('crossDetail', { id: cross.id })}
-              style={{
-                ...btnReset,
-                cursor: 'pointer',
-                width: '100%',
-                textAlign: 'left',
-              }}
-            >
-              <div
-                style={{
-                  padding: '11px 13px',
-                  background: 'var(--surface)',
-                  borderRadius: 14,
-                  border: '1px solid var(--line)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                }}
-              >
-                <span
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 10,
-                    background: 'var(--accent-bg)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}
-                >
-                  <Icon name="dna" size={18} stroke="var(--accent)" sw={2} />
-                </span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontWeight: 700,
-                      fontSize: 14,
-                      color: 'var(--accent)',
-                      letterSpacing: 0.2,
-                    }}
-                  >
-                    {cross.code}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 13,
-                      color: 'var(--ink-3)',
-                      marginTop: 2,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {cross.pod} × {cross.pollen}
-                  </div>
-                </div>
-                <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: isPod ? 'var(--green)' : 'var(--amber)',
-                      textTransform: 'uppercase',
-                      letterSpacing: 0.3,
-                      marginBottom: 4,
-                    }}
-                  >
-                    {isPod ? 'Pod' : 'Pollen'}
-                  </div>
-                  <div style={{ fontSize: 12, color: 'var(--ink-4)' }}>
-                    {cross.season}
-                  </div>
-                </div>
-                <Icon name="chevron" size={16} stroke="var(--ink-4)" />
-              </div>
-            </button>
-          )
-        })}
-      </div>
+      {asPod.length > 0 && (
+        <>
+          <SectionLabel>Crosses as pod parent</SectionLabel>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: asPollen.length > 0 ? 20 : 0 }}>
+            {asPod.map(cross => <CrossRow key={cross.id} cross={cross} go={go} />)}
+          </div>
+        </>
+      )}
+      {asPollen.length > 0 && (
+        <>
+          <SectionLabel>Crosses as pollen parent</SectionLabel>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {asPollen.map(cross => <CrossRow key={cross.id} cross={cross} go={go} />)}
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -1052,14 +999,16 @@ export function IrisDetailScreen({
         </div>
       </div>
 
-      {/* ── Lifecycle rail ── */}
-      <div style={{ padding: '22px 18px 0' }}>
-        <SectionLabel>Lifecycle</SectionLabel>
-        <LifecycleRail
-          iris={iris}
-          onStage={(step: LifecycleStep) => openStage(iris, step.key)}
-        />
-      </div>
+      {/* ── Lifecycle rail (seedlings only — milestones matter while growing on) ── */}
+      {iris.kind === 'Seedling' && (
+        <div style={{ padding: '22px 18px 0' }}>
+          <SectionLabel>Lifecycle</SectionLabel>
+          <LifecycleRail
+            iris={iris}
+            onStage={(step: LifecycleStep) => openStage(iris, step.key)}
+          />
+        </div>
+      )}
 
       {/* ── Colour definition ── */}
       <div style={{ marginTop: 22 }}>

@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { Icon } from '@/components/ui/icon'
-import { Sheet, btnReset, SectionLabel } from '@/components/ui/shared'
+import { Sheet, btnReset, SectionLabel, IrisContextHeader } from '@/components/ui/shared'
 import { useData } from '@/lib/data-context'
 import type { Iris } from '@/types'
 
@@ -81,22 +81,7 @@ export function RecordFloweringFlow({ open, iris, onClose, onSaved }: RecordFlow
     <Sheet open={open} onClose={handleClose} title="Record flowering">
       <div style={{ padding: '4px 18px 28px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-        {iris && (
-          <div style={{ padding: '10px 13px', borderRadius: 12, background: 'var(--accent-bg)', border: '1px solid var(--accent-line)', display: 'flex', alignItems: 'center', gap: 9 }}>
-            <Icon name="flower" size={16} stroke="var(--accent)" sw={2} />
-            <span style={{ fontSize: 15, fontWeight: 500, color: 'var(--accent)' }}>{iris.name}</span>
-            {iris.kind === 'Seedling' && iris.firstFlower === undefined && (
-              <span style={{
-                marginLeft: 'auto', fontSize: 12, fontWeight: 700,
-                color: 'var(--amber)', background: 'var(--amber-bg)',
-                border: '1px solid var(--amber-line)',
-                padding: '2px 8px', borderRadius: 999,
-              }}>
-                FIRST FLOWER
-              </span>
-            )}
-          </div>
-        )}
+        {iris && <IrisContextHeader iris={iris} label="Flowering for" />}
 
         <div>
           <SectionLabel>Flowering details</SectionLabel>

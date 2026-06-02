@@ -56,6 +56,23 @@ export function StatusBadge({ status, big }: { status: string; big?: boolean }) 
   )
 }
 
+// ── Iris context header (shown atop record flows) ────────────
+export function IrisContextHeader({ iris, label = 'For' }: { iris: Iris; label?: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 14, background: 'var(--surface)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-sm)' }}>
+      <div style={{ width: 44, height: 44, borderRadius: 10, overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
+        <IrisThumb iris={iris} r={10} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: 'var(--ink-4)' }}>{label}</div>
+        <div style={{ fontFamily: 'Bricolage Grotesque, system-ui, sans-serif', fontWeight: 600, fontSize: 16, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{iris.name}</div>
+        <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{[iris.cls, iris.loc].filter(Boolean).join(' · ') || iris.kind}</div>
+      </div>
+      <StatusBadge status={iris.status} />
+    </div>
+  )
+}
+
 // ── Chip ─────────────────────────────────────────────────────
 export function Chip({ children, active, onClick, icon }: {
   children: React.ReactNode; active?: boolean; onClick?: () => void; icon?: string
