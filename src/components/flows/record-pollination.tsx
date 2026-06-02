@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { Icon } from '@/components/ui/icon'
 import { Sheet, btnReset, SectionLabel } from '@/components/ui/shared'
-import { irises } from '@/lib/data'
+import { useData } from '@/lib/data-context'
 import type { Iris } from '@/types'
 
 interface RecordPollinationFlowProps {
@@ -38,38 +38,94 @@ function todayStr() {
   return new Date().toISOString().split('T')[0]
 }
 
+function ParentField({ label, value, search, onPick, onSearch, names }: {
+  label: string; value: string; search: string
+  onPick: (v: string) => void; onSearch: (v: string) => void; names: string[]
+}) {
+  const filtered = search ? names.filter(n => n.toLowerCase().includes(search.toLowerCase())) : []
+  return (
+    <div>
+      <label style={labelStyle}>{label}</label>
+      <input style={inputStyle} placeholder="Search iris by name…" value={value || search}
+        onChange={e => { onPick(''); onSearch(e.target.value) }} />
+      {filtered.length > 0 && !value && (
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 12, marginTop: 4, overflow: 'hidden' }}>
+          {filtered.slice(0, 5).map(n => (
+            <button key={n} onClick={() => { onPick(n); onSearch('') }}
+              style={{ ...btnReset, width: '100%', textAlign: 'left', padding: '11px 14px', fontSize: 15, color: 'var(--ink)', borderBottom: '1px solid var(--line)', cursor: 'pointer' }}>{n}</button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function RecordPollinationFlow({ open, iris, onClose, onSaved }: RecordPollinationFlowProps) {
+  const { irises, crosses, addCross } = useData()
   const [partner, setPartner] = useState('')
   const [partnerSearch, setPartnerSearch] = useState('')
   const [role, setRole] = useState<'pod' | 'pollen'>('pod')
+  const [podPick, setPodPick] = useState('')
+  const [podPickSearch, setPodPickSearch] = useState('')
+  const [pollenPick, setPollenPick] = useState('')
+  const [pollenPickSearch, setPollenPickSearch] = useState('')
   const [date, setDate] = useState(todayStr())
   const [notes, setNotes] = useState('')
   const [goal, setGoal] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
   const irisNames = irises.map(i => i.name).filter(n => n !== iris?.name)
-  const filteredPartners = partnerSearch
-    ? irisNames.filter(n => n.toLowerCase().includes(partnerSearch.toLowerCase()))
-    : []
 
   function handleClose() {
     setPartner('')
     setPartnerSearch('')
     setRole('pod')
+    setPodPick('')
+    setPodPickSearch('')
+    setPollenPick('')
+    setPollenPickSearch('')
     setDate(todayStr())
     setNotes('')
     setGoal('')
+    setSaving(false)
+    setError('')
     onClose()
   }
 
-  function handleSave() {
-    onSaved(partner)
-    handleClose()
+  const podParent = iris ? (role === 'pod' ? iris.name : partner) : podPick
+  const pollenParent = iris ? (role === 'pollen' ? iris.name : partner) : pollenPick
+
+  async function handleSave() {
+    if (saving || !canSave) return
+    setSaving(true)
+    setError('')
+    try {
+      const year = (date.split('-')[0]) || String(new Date().getFullYear())
+      const seq = crosses.filter(c => c.season === year).length + 1
+      const code = `${year.slice(2)}-${String(seq).padStart(2, '0')}`
+      const findId = (n: string) => irises.find(i => i.name === n)?.id ?? null
+      await addCross({
+        code,
+        season: year,
+        pod: podParent,
+        podId: findId(podParent),
+        pollen: pollenParent,
+        pollenId: findId(pollenParent),
+        date,
+        goal: goal.trim() || undefined,
+        notes: notes.trim() || undefined,
+      })
+      onSaved(iris ? partner : `${podParent} × ${pollenParent}`)
+      handleClose()
+    } catch (e) {
+      console.error(e)
+      setError('Could not save. Please try again.')
+      setSaving(false)
+    }
   }
 
-  const canSave = partner.trim().length > 0
-
-  const podParent  = role === 'pod'    ? (iris?.name || 'This plant') : partner
-  const pollenParent = role === 'pollen' ? (iris?.name || 'This plant') : partner
+  const canSave = !saving && (iris ? partner.trim().length > 0 : (podPick.trim().length > 0 && pollenPick.trim().length > 0))
 
   return (
     <Sheet open={open} onClose={handleClose} title="Record pollination">
@@ -86,93 +142,37 @@ export function RecordPollinationFlow({ open, iris, onClose, onSaved }: RecordPo
           <SectionLabel>Cross details</SectionLabel>
         </div>
 
-        {/* Role toggle */}
-        <div>
-          <label style={labelStyle}>ROLE OF THIS PLANT</label>
-          <div style={{ display: 'flex', gap: 0, borderRadius: 12, overflow: 'hidden', border: '1px solid var(--line)' }}>
-            <button
-              onClick={() => setRole('pod')}
-              style={{
-                ...btnReset,
-                flex: 1,
-                padding: '12px 10px',
-                fontSize: 14,
-                fontWeight: 600,
-                textAlign: 'center',
-                cursor: 'pointer',
-                background: role === 'pod' ? 'var(--accent)' : 'var(--surface)',
-                color: role === 'pod' ? '#fff' : 'var(--ink-2)',
-                borderRight: '1px solid var(--line)',
-                transition: 'all .15s',
-              }}
-            >
-              Pod parent
-            </button>
-            <button
-              onClick={() => setRole('pollen')}
-              style={{
-                ...btnReset,
-                flex: 1,
-                padding: '12px 10px',
-                fontSize: 14,
-                fontWeight: 600,
-                textAlign: 'center',
-                cursor: 'pointer',
-                background: role === 'pollen' ? 'var(--accent)' : 'var(--surface)',
-                color: role === 'pollen' ? '#fff' : 'var(--ink-2)',
-                transition: 'all .15s',
-              }}
-            >
-              Pollen parent
-            </button>
-          </div>
-        </div>
+        {iris ? (
+          <>
+            {/* Role toggle */}
+            <div>
+              <label style={labelStyle}>ROLE OF THIS PLANT</label>
+              <div style={{ display: 'flex', gap: 0, borderRadius: 12, overflow: 'hidden', border: '1px solid var(--line)' }}>
+                <button onClick={() => setRole('pod')} style={{ ...btnReset, flex: 1, padding: '12px 10px', fontSize: 14, fontWeight: 600, textAlign: 'center', cursor: 'pointer', background: role === 'pod' ? 'var(--accent)' : 'var(--surface)', color: role === 'pod' ? '#fff' : 'var(--ink-2)', borderRight: '1px solid var(--line)', transition: 'all .15s' }}>Pod parent</button>
+                <button onClick={() => setRole('pollen')} style={{ ...btnReset, flex: 1, padding: '12px 10px', fontSize: 14, fontWeight: 600, textAlign: 'center', cursor: 'pointer', background: role === 'pollen' ? 'var(--accent)' : 'var(--surface)', color: role === 'pollen' ? '#fff' : 'var(--ink-2)', transition: 'all .15s' }}>Pollen parent</button>
+              </div>
+            </div>
+            {/* Partner search */}
+            <ParentField
+              label={role === 'pod' ? 'POLLEN PARENT (PARTNER)' : 'POD PARENT (PARTNER)'}
+              value={partner} search={partnerSearch} onPick={setPartner} onSearch={setPartnerSearch} names={irisNames}
+            />
+          </>
+        ) : (
+          <>
+            <ParentField label="POD PARENT" value={podPick} search={podPickSearch} onPick={setPodPick} onSearch={setPodPickSearch} names={irisNames} />
+            <ParentField label="POLLEN PARENT" value={pollenPick} search={pollenPickSearch} onPick={setPollenPick} onSearch={setPollenPickSearch} names={irisNames} />
+          </>
+        )}
 
         {/* Cross summary */}
-        {partner && (
-          <div style={{
-            padding: '12px 14px',
-            borderRadius: 12,
-            background: 'var(--surface)',
-            border: '1px solid var(--line)',
-            fontSize: 14,
-            color: 'var(--ink-2)',
-            lineHeight: 1.5,
-          }}>
+        {podParent && pollenParent && (
+          <div style={{ padding: '12px 14px', borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--line)', fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.5 }}>
             <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{podParent}</span>
             <span style={{ color: 'var(--ink-3)', margin: '0 6px' }}>×</span>
             <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{pollenParent}</span>
           </div>
         )}
-
-        {/* Partner search */}
-        <div>
-          <label style={labelStyle}>
-            {role === 'pod' ? 'POLLEN PARENT (PARTNER)' : 'POD PARENT (PARTNER)'}
-          </label>
-          <input
-            style={inputStyle}
-            placeholder="Search iris by name…"
-            value={partner || partnerSearch}
-            onChange={e => {
-              setPartner('')
-              setPartnerSearch(e.target.value)
-            }}
-          />
-          {filteredPartners.length > 0 && !partner && (
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 12, marginTop: 4, overflow: 'hidden' }}>
-              {filteredPartners.slice(0, 5).map(n => (
-                <button
-                  key={n}
-                  onClick={() => { setPartner(n); setPartnerSearch('') }}
-                  style={{ ...btnReset, width: '100%', textAlign: 'left', padding: '11px 14px', fontSize: 15, color: 'var(--ink)', borderBottom: '1px solid var(--line)', cursor: 'pointer' }}
-                >
-                  {n}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
 
         <div>
           <label style={labelStyle}>DATE</label>
@@ -204,6 +204,10 @@ export function RecordPollinationFlow({ open, iris, onClose, onSaved }: RecordPo
           />
         </div>
 
+        {error && (
+          <div style={{ padding: 12, background: 'var(--rose-bg)', border: '1px solid var(--rose-line)', borderRadius: 12, fontSize: 13.5, color: 'var(--rose)' }}>{error}</div>
+        )}
+
         <button
           onClick={handleSave}
           disabled={!canSave}
@@ -225,7 +229,7 @@ export function RecordPollinationFlow({ open, iris, onClose, onSaved }: RecordPo
           }}
         >
           <Icon name="droplet" size={18} stroke="#fff" sw={2} />
-          Record Cross
+          {saving ? 'Saving…' : 'Record Cross'}
         </button>
       </div>
     </Sheet>

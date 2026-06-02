@@ -3,8 +3,9 @@ import { useState } from 'react'
 import { Icon } from '@/components/ui/icon'
 import { IrisThumb, IrisCard, SectionLabel, Chip, Segmented, btnReset, EmptyState, RatingDots, StatusBadge } from '@/components/ui/shared'
 import { IrisBloom } from '@/components/ui/iris-bloom'
-import { irises, locations, crosses, crossesList, crossStats, byId, PAL, STATUS } from '@/lib/data'
-import type { Iris } from '@/types'
+import { PAL } from '@/lib/data'
+import { useData } from '@/lib/data-context'
+import type { Iris, Cross } from '@/types'
 
 // ── Status badge for cross status ────────────────────────────
 const CROSS_STATUS: Record<string, string> = {
@@ -52,7 +53,8 @@ function ThumbPair({ podIris, polIris }: { podIris?: Iris; polIris?: Iris }) {
 }
 
 // ── Cross card ────────────────────────────────────────────────
-function CrossCard({ cross, go }: { cross: ReturnType<typeof crossesList>[number]; go: (screen: string, params?: Record<string, unknown>) => void }) {
+function CrossCard({ cross, go }: { cross: Cross; go: (screen: string, params?: Record<string, unknown>) => void }) {
+  const { irises, crossStats } = useData()
   const podIris = irises.find(i => i.name === cross.pod)
   const polIris = irises.find(i => i.name === cross.pollen)
   const s = crossStats(cross.id)
@@ -123,10 +125,11 @@ export function CrossesScreen({ go, wide, openAdd, openNewCross }: {
   openAdd?: () => void
   openNewCross?: () => void
 }) {
+  const { crosses, irises } = useData()
   const [filter, setFilter] = useState('All')
   const FILTERS = ['All', 'Active', 'Complete', 'Archived']
 
-  const list = crossesList()
+  const list = crosses
   const totalSeedlings = irises.filter(i => i.kind === 'Seedling').length
   const active = list.filter(c => c.status !== 'Archived').length
   const archived = list.filter(c => c.status === 'Archived').length
@@ -231,7 +234,8 @@ export function CrossDetailScreen({ id, go, wide, openPollination, openAddSeedli
   openPollination?: () => void
   openAddSeedling?: () => void
 }) {
-  const cross = crosses[id]
+  const { crosses, irises, crossStats } = useData()
+  const cross = crosses.find(c => c.id === id)
 
   if (!cross) {
     return (
@@ -244,7 +248,7 @@ export function CrossDetailScreen({ id, go, wide, openPollination, openAddSeedli
   const podIris = irises.find(i => i.name === cross.pod)
   const polIris = irises.find(i => i.name === cross.pollen)
   const s = crossStats(cross.id)
-  const seedlings = irises.filter(i => i.cross === cross.id)
+  const seedlings = irises.filter(i => i.crossId === cross.id || i.cross === cross.id)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
@@ -442,6 +446,7 @@ export function CompareScreen({ ids, go, wide }: {
   go: (screen: string, params?: Record<string, unknown>) => void
   wide?: boolean
 }) {
+  const { irises } = useData()
   const subjects = ids.slice(0, 2).map(id => irises.find(i => i.id === id)).filter(Boolean) as Iris[]
 
   return (

@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Location, Iris, IrisKind, IrisStatus, IrisNote, FloweringRecord, EvalRecord } from '@/types'
+import type { Location, Iris, IrisKind, IrisStatus, IrisNote, FloweringRecord, EvalRecord, Cross } from '@/types'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -337,4 +337,64 @@ export async function insertEvaluation(supabase: SupabaseClient, userId: string,
     .single()
   if (error) throw error
   return dbToEval(data)
+}
+
+// ─── Crosses ──────────────────────────────────────────────────
+export function dbToCross(row: any): Cross {
+  return {
+    id: row.id,
+    code: row.code,
+    season: row.season ?? '',
+    pod: row.pod_parent ?? '',
+    pollen: row.pollen_parent ?? '',
+    date: row.pollination_date ?? undefined,
+    podNo: row.pod_number ?? undefined,
+    notes: row.notes ?? undefined,
+    status: row.status ?? 'Sown',
+    goal: row.goal ?? undefined,
+  }
+}
+
+export interface NewCross {
+  code: string
+  season?: string
+  pod: string
+  podId?: string | null
+  pollen: string
+  pollenId?: string | null
+  date?: string
+  goal?: string
+  notes?: string
+}
+
+export async function fetchCrosses(supabase: SupabaseClient, userId: string): Promise<Cross[]> {
+  const { data, error } = await supabase
+    .from('crosses')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []).map(dbToCross)
+}
+
+export async function insertCross(supabase: SupabaseClient, userId: string, input: NewCross): Promise<Cross> {
+  const { data, error } = await supabase
+    .from('crosses')
+    .insert({
+      user_id: userId,
+      code: input.code,
+      season: input.season || null,
+      pod_parent: input.pod || null,
+      pod_parent_id: input.podId || null,
+      pollen_parent: input.pollen || null,
+      pollen_parent_id: input.pollenId || null,
+      pollination_date: input.date || null,
+      goal: input.goal || null,
+      notes: input.notes || null,
+      status: 'Sown',
+    })
+    .select()
+    .single()
+  if (error) throw error
+  return dbToCross(data)
 }

@@ -1,28 +1,33 @@
 'use client'
 import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { Location, Iris } from '@/types'
+import type { Location, Iris, Cross } from '@/types'
 import {
   fetchLocations, insertLocation, type NewLocation,
   fetchIrises, insertIris, type NewIris,
   fetchNotes, insertNote, type NewNote, type IrisNoteRow,
   fetchFlowering, upsertFlowering, type NewFlowering, type FloweringRow,
   fetchEvaluations, insertEvaluation, type NewEval, type EvalRow,
+  fetchCrosses, insertCross, type NewCross,
 } from '@/lib/db/queries'
 
 export interface RecentActivity { irisId: string; irisName: string; d: string; t: string; x: string; ts: string }
+export interface CrossStats { seeds: number; total: number; flowering: number; firstFlower: number; flowered: number; growing: number; watch: number }
 
 interface DataContextValue {
   ready: boolean
   locations: Location[]
   irises: Iris[]
+  crosses: Cross[]
   recent: RecentActivity[]
   byId: (id: string) => Iris | undefined
+  crossStats: (crossId: string) => CrossStats
   addLocation: (input: NewLocation) => Promise<void>
   addIris: (input: NewIris) => Promise<Iris>
   addNote: (input: NewNote) => Promise<void>
   addFlowering: (input: NewFlowering) => Promise<void>
   addEvaluation: (input: NewEval) => Promise<void>
+  addCross: (input: NewCross) => Promise<void>
   refresh: () => Promise<void>
 }
 
@@ -36,23 +41,26 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [notes, setNotes] = useState<IrisNoteRow[]>([])
   const [flowering, setFlowering] = useState<FloweringRow[]>([])
   const [evals, setEvals] = useState<EvalRow[]>([])
+  const [crosses, setCrosses] = useState<Cross[]>([])
 
   const load = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setReady(true); return }
     try {
-      const [locs, iris, ns, fl, ev] = await Promise.all([
+      const [locs, iris, ns, fl, ev, xs] = await Promise.all([
         fetchLocations(supabase, user.id),
         fetchIrises(supabase, user.id),
         fetchNotes(supabase, user.id),
         fetchFlowering(supabase, user.id),
         fetchEvaluations(supabase, user.id),
+        fetchCrosses(supabase, user.id),
       ])
       setRawLocations(locs)
       setRawIrises(iris)
       setNotes(ns)
       setFlowering(fl)
       setEvals(ev)
+      setCrosses(xs)
     } catch (e) {
       console.error('Failed to load data', e)
     }
@@ -127,12 +135,34 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setEvals(prev => [rec, ...prev])
   }, [supabase, requireUser])
 
+  const addCross = useCallback(async (input: NewCross) => {
+    const user = await requireUser()
+    const cross = await insertCross(supabase, user.id, input)
+    setCrosses(prev => [cross, ...prev])
+  }, [supabase, requireUser])
+
   const byId = useCallback((id: string) => irises.find(i => i.id === id), [irises])
 
+  // Cross funnel stats derived from real seedlings (seeds come later with batches)
+  const crossStats = useCallback((crossId: string): CrossStats => {
+    const seedlings = rawIrises.filter(i => i.crossId === crossId || i.cross === crossId)
+    const flowering = seedlings.filter(i => i.status === 'Flowering').length
+    const firstFlower = seedlings.filter(i => i.status === 'First flower').length
+    return {
+      seeds: 0,
+      total: seedlings.length,
+      flowering,
+      firstFlower,
+      flowered: flowering + firstFlower,
+      growing: seedlings.filter(i => !['Archived'].includes(i.status ?? '')).length,
+      watch: seedlings.filter(i => i.status === 'Watch').length,
+    }
+  }, [rawIrises])
+
   const value = useMemo<DataContextValue>(() => ({
-    ready, locations, irises, recent, byId,
-    addLocation, addIris, addNote, addFlowering, addEvaluation, refresh: load,
-  }), [ready, locations, irises, recent, byId, addLocation, addIris, addNote, addFlowering, addEvaluation, load])
+    ready, locations, irises, crosses, recent, byId, crossStats,
+    addLocation, addIris, addNote, addFlowering, addEvaluation, addCross, refresh: load,
+  }), [ready, locations, irises, crosses, recent, byId, crossStats, addLocation, addIris, addNote, addFlowering, addEvaluation, addCross, load])
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
 }
