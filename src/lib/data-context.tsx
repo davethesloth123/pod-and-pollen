@@ -9,10 +9,14 @@ import {
   fetchFlowering, upsertFlowering, type NewFlowering, type FloweringRow,
   fetchEvaluations, insertEvaluation, type NewEval, type EvalRow,
   fetchCrosses, insertCross, type NewCross,
+  updateIris as dbUpdateIris, deleteIris as dbDeleteIris, type IrisPatch,
+  updateLocation as dbUpdateLocation, deleteLocation as dbDeleteLocation, type LocationPatch,
+  deleteNote as dbDeleteNote,
 } from '@/lib/db/queries'
 
 export interface RecentActivity { irisId: string; irisName: string; d: string; t: string; x: string; ts: string }
 export interface CrossStats { seeds: number; total: number; flowering: number; firstFlower: number; flowered: number; growing: number; watch: number }
+export type Units = 'cm' | 'in'
 
 interface DataContextValue {
   ready: boolean
@@ -20,14 +24,23 @@ interface DataContextValue {
   irises: Iris[]
   crosses: Cross[]
   recent: RecentActivity[]
+  units: Units
+  setUnits: (u: Units) => void
   byId: (id: string) => Iris | undefined
   crossStats: (crossId: string) => CrossStats
   addLocation: (input: NewLocation) => Promise<void>
   addIris: (input: NewIris) => Promise<Iris>
   addNote: (input: NewNote) => Promise<void>
-  addFlowering: (input: NewFlowering) => Promise<void>
+  addFlowering: (input: NewFlowering & { setStatus?: string }) => Promise<void>
   addEvaluation: (input: NewEval) => Promise<void>
   addCross: (input: NewCross) => Promise<void>
+  updateIris: (id: string, patch: IrisPatch) => Promise<void>
+  deleteIris: (id: string) => Promise<void>
+  setStatus: (id: string, status: string) => Promise<void>
+  toggleFav: (id: string) => Promise<void>
+  updateLocation: (id: string, patch: LocationPatch) => Promise<void>
+  deleteLocation: (id: string) => Promise<void>
+  deleteNote: (id: string) => Promise<void>
   refresh: () => Promise<void>
 }
 
@@ -42,6 +55,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [flowering, setFlowering] = useState<FloweringRow[]>([])
   const [evals, setEvals] = useState<EvalRow[]>([])
   const [crosses, setCrosses] = useState<Cross[]>([])
+  const [units, setUnitsState] = useState<Units>('cm')
+
+  useEffect(() => {
+    try { const u = localStorage.getItem('bl_units'); if (u === 'cm' || u === 'in') setUnitsState(u) } catch { /* ignore */ }
+  }, [])
+  const setUnits = useCallback((u: Units) => {
+    setUnitsState(u)
+    try { localStorage.setItem('bl_units', u) } catch { /* ignore */ }
+  }, [])
 
   const load = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -123,10 +145,17 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setNotes(prev => [note, ...prev])
   }, [supabase, requireUser])
 
-  const addFlowering = useCallback(async (input: NewFlowering) => {
+  const addFlowering = useCallback(async (input: NewFlowering & { setStatus?: string }) => {
     const user = await requireUser()
-    const rec = await upsertFlowering(supabase, user.id, input)
+    const { setStatus: newStatus, ...rec0 } = input
+    const rec = await upsertFlowering(supabase, user.id, rec0)
     setFlowering(prev => [rec, ...prev.filter(f => !(f.irisId === rec.irisId && f.year === rec.year))])
+    if (newStatus) {
+      try {
+        const updated = await dbUpdateIris(supabase, user.id, input.irisId, { status: newStatus })
+        setRawIrises(prev => prev.map(i => i.id === updated.id ? { ...updated } : i))
+      } catch (e) { console.error('status update after flowering', e) }
+    }
   }, [supabase, requireUser])
 
   const addEvaluation = useCallback(async (input: NewEval) => {
@@ -139,6 +168,53 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const user = await requireUser()
     const cross = await insertCross(supabase, user.id, input)
     setCrosses(prev => [cross, ...prev])
+  }, [supabase, requireUser])
+
+  const updateIris = useCallback(async (id: string, patch: IrisPatch) => {
+    const user = await requireUser()
+    const updated = await dbUpdateIris(supabase, user.id, id, patch)
+    setRawIrises(prev => prev.map(i => i.id === id ? updated : i))
+  }, [supabase, requireUser])
+
+  const deleteIris = useCallback(async (id: string) => {
+    const user = await requireUser()
+    await dbDeleteIris(supabase, user.id, id)
+    setRawIrises(prev => prev.filter(i => i.id !== id))
+    setNotes(prev => prev.filter(n => n.irisId !== id))
+    setFlowering(prev => prev.filter(f => f.irisId !== id))
+    setEvals(prev => prev.filter(e => e.irisId !== id))
+  }, [supabase, requireUser])
+
+  const setStatus = useCallback(async (id: string, status: string) => {
+    const user = await requireUser()
+    const updated = await dbUpdateIris(supabase, user.id, id, { status })
+    setRawIrises(prev => prev.map(i => i.id === id ? updated : i))
+  }, [supabase, requireUser])
+
+  const toggleFav = useCallback(async (id: string) => {
+    const user = await requireUser()
+    const cur = rawIrises.find(i => i.id === id)
+    const updated = await dbUpdateIris(supabase, user.id, id, { fav: !cur?.fav })
+    setRawIrises(prev => prev.map(i => i.id === id ? updated : i))
+  }, [supabase, requireUser, rawIrises])
+
+  const updateLocation = useCallback(async (id: string, patch: LocationPatch) => {
+    const user = await requireUser()
+    const updated = await dbUpdateLocation(supabase, user.id, id, patch)
+    setRawLocations(prev => prev.map(l => l.id === id ? updated : l))
+  }, [supabase, requireUser])
+
+  const deleteLocation = useCallback(async (id: string) => {
+    const user = await requireUser()
+    await dbDeleteLocation(supabase, user.id, id)
+    setRawLocations(prev => prev.filter(l => l.id !== id))
+    setRawIrises(prev => prev.map(i => i.locationId === id ? { ...i, locationId: undefined, loc: undefined } : i))
+  }, [supabase, requireUser])
+
+  const deleteNote = useCallback(async (id: string) => {
+    const user = await requireUser()
+    await dbDeleteNote(supabase, user.id, id)
+    setNotes(prev => prev.filter(n => n.id !== id))
   }, [supabase, requireUser])
 
   const byId = useCallback((id: string) => irises.find(i => i.id === id), [irises])
@@ -160,9 +236,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }, [rawIrises])
 
   const value = useMemo<DataContextValue>(() => ({
-    ready, locations, irises, crosses, recent, byId, crossStats,
-    addLocation, addIris, addNote, addFlowering, addEvaluation, addCross, refresh: load,
-  }), [ready, locations, irises, crosses, recent, byId, crossStats, addLocation, addIris, addNote, addFlowering, addEvaluation, addCross, load])
+    ready, locations, irises, crosses, recent, units, setUnits, byId, crossStats,
+    addLocation, addIris, addNote, addFlowering, addEvaluation, addCross,
+    updateIris, deleteIris, setStatus, toggleFav, updateLocation, deleteLocation, deleteNote,
+    refresh: load,
+  }), [ready, locations, irises, crosses, recent, units, setUnits, byId, crossStats,
+    addLocation, addIris, addNote, addFlowering, addEvaluation, addCross,
+    updateIris, deleteIris, setStatus, toggleFav, updateLocation, deleteLocation, deleteNote, load])
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
 }

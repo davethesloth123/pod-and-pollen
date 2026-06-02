@@ -1,13 +1,11 @@
 'use client'
 import { useState, useRef } from 'react'
 import { Icon } from '@/components/ui/icon'
-import { IrisThumb, IrisCard, SectionLabel, Chip, Segmented, btnReset, EmptyState } from '@/components/ui/shared'
-import { IrisBloom } from '@/components/ui/iris-bloom'
-import { irises, locations, crosses, crossesList, crossStats, byId, PAL, STATUS } from '@/lib/data'
-import type { Iris } from '@/types'
+import { IrisCard, SectionLabel, btnReset, EmptyState } from '@/components/ui/shared'
+import { useData } from '@/lib/data-context'
 
-// ── Recent searches (static sample) ──────────────────────────
-const SAMPLE_RECENT = ['Dusky Challenger', 'Trial Bed', 'GI-23-04', 'Tall Bearded']
+// ── Search suggestions (static, generic — not tied to any iris) ──
+const SUGGESTIONS = ['Tall Bearded', 'Flowering', 'Seedling', 'Reblooming']
 
 // ── Filter option types ───────────────────────────────────────
 type FilterKey = 'status' | 'location' | 'classification' | 'year'
@@ -83,19 +81,24 @@ function FilterPanel({
 export function SearchScreen({ go }: {
   go: (screen: string, params?: Record<string, unknown>) => void
 }) {
+  const { irises, locations } = useData()
   const [q, setQ] = useState('')
   const [openFilter, setOpenFilter] = useState<FilterKey | null>(null)
   const [filters, setFilters] = useState<ActiveFilters>({ status: '', location: '', classification: '', year: '' })
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Derive unique filter options from data
-  const statusOptions = Array.from(new Set(irises.map(i => i.status))).sort()
-  const locationOptions = Array.from(new Set(irises.map(i => i.loc).filter(Boolean))).sort() as string[]
-  const classOptions = Array.from(new Set(irises.map(i => i.cls))).sort()
-  const yearOptions = Array.from(new Set(irises
-    .map(i => i.planted ? i.planted.split(' ').pop() : undefined)
-    .filter(Boolean)
-  )).sort().reverse() as string[]
+  // Derive unique filter options from the user's real data
+  const statusOptions = Array.from(new Set(irises.map(i => i.status).filter(Boolean))).sort() as string[]
+  const locationOptions = locations.map(l => l.name)
+  const classOptions = Array.from(new Set(irises.map(i => i.cls).filter(Boolean))).sort() as string[]
+  // Best-effort 4-digit year parse from `planted`; fall back to flowering years if absent
+  const yearSet = new Set<string>()
+  for (const i of irises) {
+    const m = i.planted?.match(/\b(\d{4})\b/)
+    if (m) yearSet.add(m[1])
+    else for (const fh of i.floweringHistory ?? []) if (fh.year) yearSet.add(String(fh.year))
+  }
+  const yearOptions = Array.from(yearSet).sort().reverse()
 
   const filterDefs: { key: FilterKey; label: string; options: string[] }[] = [
     { key: 'status',         label: 'Status',         options: statusOptions },
@@ -116,7 +119,9 @@ export function SearchScreen({ go }: {
   if (filters.status)         results = results.filter(i => i.status === filters.status)
   if (filters.location)       results = results.filter(i => i.loc === filters.location)
   if (filters.classification) results = results.filter(i => i.cls === filters.classification)
-  if (filters.year)           results = results.filter(i => i.planted?.endsWith(filters.year))
+  if (filters.year)           results = results.filter(i =>
+    i.planted?.includes(filters.year) || (i.floweringHistory ?? []).some(fh => String(fh.year) === filters.year)
+  )
 
   const hasQuery = q.trim().length > 0
   const hasFilters = Object.values(filters).some(Boolean)
@@ -225,11 +230,11 @@ export function SearchScreen({ go }: {
       {/* Main content */}
       <div style={{ flex: 1, padding: '14px 16px 32px' }}>
         {!showResults ? (
-          /* Recent searches */
+          /* Suggestions + quick browse */
           <div>
-            <SectionLabel>Recent searches</SectionLabel>
+            <SectionLabel>Suggestions</SectionLabel>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {SAMPLE_RECENT.map(term => (
+              {SUGGESTIONS.map(term => (
                 <button
                   key={term}
                   onClick={() => setQ(term)}
@@ -248,6 +253,14 @@ export function SearchScreen({ go }: {
 
             {/* All irises quick browse */}
             <div style={{ marginTop: 24 }}>
+              {irises.length === 0 ? (
+                <EmptyState
+                  icon="flower"
+                  title="No irises yet"
+                  body="Add irises to your collection and they'll show up here for quick searching."
+                />
+              ) : (
+              <>
               <SectionLabel>{irises.length} plants in collection</SectionLabel>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {irises.slice(0, 5).map(iris => (
@@ -270,6 +283,8 @@ export function SearchScreen({ go }: {
                   </button>
                 )}
               </div>
+              </>
+              )}
             </div>
           </div>
         ) : (

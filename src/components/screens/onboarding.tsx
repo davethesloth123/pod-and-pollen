@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Icon } from '@/components/ui/icon'
 import { btnReset } from '@/components/ui/shared'
 import { PLANT_TYPES, getGoals, recommendWidgets, DEFAULT_WIDGETS } from '@/lib/data'
+import { useData } from '@/lib/data-context'
 
 interface OnboardingFlowProps {
   onComplete?: (recommendedWidgets?: string[]) => void
@@ -12,13 +13,23 @@ interface OnboardingFlowProps {
 const TOTAL_STEPS = 5 // welcome, plant, matters, gardenType, garden
 
 export function OnboardingFlow({ onComplete, onDone }: OnboardingFlowProps) {
+  const { addLocation } = useData()
   const [step, setStep] = useState(0)
   const [matters, setMatters] = useState<string[]>([])
   const [gardenType, setGardenType] = useState('')
   const [gardenName, setGardenName] = useState('')
 
   // Complete onboarding, building the dashboard from the chosen answers
-  const finish = (mattersKeys = matters, gType = gardenType) => {
+  const finish = async (mattersKeys = matters, gType = gardenType) => {
+    const name = gardenName.trim()
+    if (name) {
+      try {
+        await addLocation({ name, kind: 'Bed' })
+      } catch (err) {
+        // Don't block completion if location creation fails
+        console.error('Failed to create onboarding location', err)
+      }
+    }
     const recommended = recommendWidgets({ matters: mattersKeys, gardenType: gType || 'mixed', frequency: 'weekly' })
     onComplete?.(recommended)
     onDone?.({ matters: mattersKeys, gardenType: gType, gardenName })

@@ -398,3 +398,74 @@ export async function insertCross(supabase: SupabaseClient, userId: string, inpu
   if (error) throw error
   return dbToCross(data)
 }
+
+// ─── Updates & deletes ────────────────────────────────────────
+export interface IrisPatch {
+  name?: string; kind?: string; classification?: string; colorType?: string
+  status?: string; fav?: boolean; locationId?: string | null; gridRef?: string
+  plantedDate?: string; podParent?: string; pollenParent?: string
+  height?: number | null; season?: string; fragrance?: string; breeder?: string; yearReleased?: number | null
+  colorStandards?: string; colorFalls?: string; colorBeard?: string; colorStyleArms?: string
+  firstEverFlower?: string
+}
+
+const IRIS_COL_MAP: Record<string, string> = {
+  name: 'name', kind: 'kind', classification: 'classification', colorType: 'color_type',
+  status: 'status', fav: 'fav', locationId: 'location_id', gridRef: 'grid_ref',
+  plantedDate: 'planted_date', podParent: 'pod_parent', pollenParent: 'pollen_parent',
+  height: 'height_cm', season: 'season', fragrance: 'fragrance', breeder: 'breeder',
+  yearReleased: 'year_released', colorStandards: 'color_standards', colorFalls: 'color_falls',
+  colorBeard: 'color_beard', colorStyleArms: 'color_style_arms', firstEverFlower: 'first_ever_flower',
+}
+
+export async function updateIris(supabase: SupabaseClient, userId: string, id: string, patch: IrisPatch): Promise<Iris> {
+  const col: Record<string, unknown> = { updated_at: new Date().toISOString() }
+  for (const [k, v] of Object.entries(patch)) {
+    if (v === undefined) continue
+    const c = IRIS_COL_MAP[k]
+    if (!c) continue
+    col[c] = v === '' ? null : v
+  }
+  const { data, error } = await supabase
+    .from('irises').update(col).eq('id', id).eq('user_id', userId)
+    .select('*, location:locations(name)').single()
+  if (error) throw error
+  return dbToIris(data)
+}
+
+export async function deleteIris(supabase: SupabaseClient, userId: string, id: string): Promise<void> {
+  const { error } = await supabase.from('irises').delete().eq('id', id).eq('user_id', userId)
+  if (error) throw error
+}
+
+export interface LocationPatch {
+  name?: string; shortName?: string; kind?: string; sun?: string; soil?: string
+  x?: number; y?: number; w?: number; h?: number; shape?: string
+}
+const LOC_COL_MAP: Record<string, string> = {
+  name: 'name', shortName: 'short_name', kind: 'kind', sun: 'sun', soil: 'soil',
+  x: 'x', y: 'y', w: 'w', h: 'h', shape: 'shape',
+}
+export async function updateLocation(supabase: SupabaseClient, userId: string, id: string, patch: LocationPatch): Promise<Location> {
+  const col: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(patch)) {
+    if (v === undefined) continue
+    const c = LOC_COL_MAP[k]
+    if (!c) continue
+    col[c] = v === '' ? null : v
+  }
+  const { data, error } = await supabase
+    .from('locations').update(col).eq('id', id).eq('user_id', userId).select().single()
+  if (error) throw error
+  return dbToLocation(data)
+}
+
+export async function deleteLocation(supabase: SupabaseClient, userId: string, id: string): Promise<void> {
+  const { error } = await supabase.from('locations').delete().eq('id', id).eq('user_id', userId)
+  if (error) throw error
+}
+
+export async function deleteNote(supabase: SupabaseClient, userId: string, id: string): Promise<void> {
+  const { error } = await supabase.from('notes').delete().eq('id', id).eq('user_id', userId)
+  if (error) throw error
+}

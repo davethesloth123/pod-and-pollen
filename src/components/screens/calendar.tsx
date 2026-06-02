@@ -1,50 +1,55 @@
 'use client'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Icon } from '@/components/ui/icon'
-import { IrisThumb, IrisCard, SectionLabel, Chip, Segmented, btnReset, EmptyState } from '@/components/ui/shared'
-import { IrisBloom } from '@/components/ui/iris-bloom'
-import { irises, locations, crosses, crossesList, crossStats, byId, PAL, STATUS } from '@/lib/data'
+import { IrisThumb, SectionLabel, Chip, btnReset, EmptyState } from '@/components/ui/shared'
+import { useData } from '@/lib/data-context'
 import type { Iris } from '@/types'
 
-// ── Static bloom calendar data ────────────────────────────────
+// ── Bloom calendar ────────────────────────────────────────────
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-const monthCounts = [0, 0, 0, 1, 7, 2, 0, 0, 0, 1, 0, 0]
 const currentMonth = new Date().getMonth() // 0-indexed
+
+// Parse a 1–12 month from a flowering `first` date (primarily "DD/MM/YYYY").
+// Returns null if missing/unparseable.
+function monthFromFirst(first: string | null | undefined): number | null {
+  if (!first) return null
+  const parts = first.split(/[/\-.]/)
+  if (parts.length === 3) {
+    const mid = parseInt(parts[1], 10)
+    if (mid >= 1 && mid <= 12) return mid
+  }
+  return null
+}
 
 // ── CalendarScreen ────────────────────────────────────────────
 export function CalendarScreen({ go, wide }: {
   go: (screen: string, params?: Record<string, unknown>) => void
   wide?: boolean
 }) {
+  const { irises } = useData()
   const [selectedMonth, setSelectedMonth] = useState<number>(currentMonth)
 
-  // Derive irises for selected month
-  // Primary: check floweringHistory for first dates matching selected month
-  // Fallback: show Flowering/First flower irises for May (index 4), otherwise none
-  const monthIrises: Iris[] = irises.filter(iris => {
-    // Check floweringHistory for any entry where first date falls in selected month
-    if (iris.floweringHistory?.length) {
-      return iris.floweringHistory.some(fh => {
-        if (!fh.first) return false
-        // fh.first format: "DD/MM/YYYY" or "MM/DD/YYYY" — data uses DD/MM/YYYY
-        const parts = fh.first.split('/')
-        if (parts.length === 3) {
-          const month = parseInt(parts[1], 10) - 1 // 0-indexed
-          return month === selectedMonth
-        }
-        return false
-      })
+  // Real aggregation: count flowering records per month (Jan..Dec)
+  const monthCounts = useMemo(() => {
+    const counts = new Array(12).fill(0)
+    for (const iris of irises) {
+      for (const fh of iris.floweringHistory ?? []) {
+        const m = monthFromFirst(fh.first)
+        if (m) counts[m - 1]++
+      }
     }
-    // Fallback: flowering/first-flower irises show in May
-    if (selectedMonth === 4 && (iris.status === 'Flowering' || iris.status === 'First flower')) {
-      return true
-    }
-    // October rebloomers
-    if (selectedMonth === 9 && iris.cls?.includes('reblooming')) {
-      return true
-    }
-    return false
-  })
+    return counts
+  }, [irises])
+
+  const hasAnyFlowering = monthCounts.some(c => c > 0)
+
+  // Irises that have a flowering record in the selected month (deduped by id)
+  const monthIrises: Iris[] = useMemo(() => {
+    const sel = selectedMonth + 1 // 1-indexed month
+    return irises.filter(iris =>
+      (iris.floweringHistory ?? []).some(fh => monthFromFirst(fh.first) === sel),
+    )
+  }, [irises, selectedMonth])
 
   const maxCount = Math.max(...monthCounts, 1)
 
@@ -63,6 +68,16 @@ export function CalendarScreen({ go, wide }: {
         </p>
       </div>
 
+      {!hasAnyFlowering ? (
+        <div style={{ padding: '8px 18px 40px' }}>
+          <EmptyState
+            icon="calendar"
+            title="No flowering recorded yet"
+            body="Record flowering on your irises to build your bloom calendar."
+          />
+        </div>
+      ) : (
+      <>
       {/* Year bar chart */}
       <div style={{
         margin: '0 0 20px',
@@ -165,11 +180,7 @@ export function CalendarScreen({ go, wide }: {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {monthIrises.map(iris => {
               // Find the flowering record for this month
-              const fh = iris.floweringHistory?.find(r => {
-                if (!r.first) return false
-                const parts = r.first.split('/')
-                return parts.length === 3 && parseInt(parts[1], 10) - 1 === selectedMonth
-              })
+              const fh = iris.floweringHistory?.find(r => monthFromFirst(r.first) === selectedMonth + 1)
               return (
                 <button
                   key={iris.id}
@@ -261,6 +272,8 @@ export function CalendarScreen({ go, wide }: {
           </div>
         </div>
       </div>
+      </>
+      )}
     </div>
   )
 }

@@ -50,13 +50,12 @@ function EmptyHint({ icon, title, body }: { icon: string; title: string; body: s
 
 // ─── Widgets ──────────────────────────────────────────────────
 
-function QuickActionsWidget({ openAdd, openNote, openPhoto, go }: { openAdd: () => void; openNote: () => void; openPhoto: () => void; go: (view: string | -1, params?: Record<string, any>) => void }) {
+function QuickActionsWidget({ openAdd, openNote, go }: { openAdd: () => void; openNote: () => void; go: (view: string | -1, params?: Record<string, any>) => void }) {
   return (
     <div>
       <div style={{ display: 'flex', gap: 10 }}>
         <ActionRow icon="plus" label="Add iris" onClick={openAdd} accent />
         <ActionRow icon="note" label="Quick note" onClick={openNote} />
-        <ActionRow icon="camera" label="Add photo" onClick={openPhoto} />
         <ActionRow icon="search" label="Search" onClick={() => go('search')} />
       </div>
     </div>
@@ -482,7 +481,7 @@ function WidgetSlot({ id, go, wide, openAdd, openNote, openPhoto }: {
 }) {
   switch (id) {
     case 'quick':
-      return <QuickActionsWidget openAdd={openAdd} openNote={openNote} openPhoto={openPhoto} go={go} />
+      return <QuickActionsWidget openAdd={openAdd} openNote={openNote} go={go} />
     case 'today':
       return <TodayWidget go={go} />
     case 'inflower':

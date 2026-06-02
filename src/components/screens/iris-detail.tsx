@@ -1,4 +1,5 @@
 'use client'
+import { useState } from 'react'
 import { Icon } from '@/components/ui/icon'
 import { IrisBloom } from '@/components/ui/iris-bloom'
 import {
@@ -8,6 +9,10 @@ import {
 import { crossesList, PAL, lifecycleFor, latestEval } from '@/lib/data'
 import { useData } from '@/lib/data-context'
 import type { Iris, IrisNote, LifecycleStep } from '@/types'
+
+function fmtHeight(cm: number, units: 'cm' | 'in') {
+  return units === 'in' ? `${Math.round(cm / 2.54)}"` : `${cm} cm`
+}
 
 // ─── Types ────────────────────────────────────────────────────
 interface IrisDetailScreenProps {
@@ -22,8 +27,11 @@ interface IrisDetailScreenProps {
   openFlowering: (iris: Iris) => void
   openPollination: (iris: Iris) => void
   openPhotoViewer: (photos: any[], index: number) => void
+  openEdit: (iris: Iris) => void
   toast: (msg: string) => void
 }
+
+const STATUS_OPTIONS = ['Growing', 'Flowering', 'First flower', 'Watch', 'Named', 'Archived']
 
 // ─── Note type icon map ───────────────────────────────────────
 const NOTE_ICONS: Record<string, string> = {
@@ -705,6 +713,7 @@ function CrossesSection({
 
 // ─── Flowering history ────────────────────────────────────────
 function FloweringHistory({ iris }: { iris: Iris }) {
+  const { units } = useData()
   const history = iris.floweringHistory
   if (!history || history.length === 0) return null
 
@@ -773,7 +782,7 @@ function FloweringHistory({ iris }: { iris: Iris }) {
                 )}
                 {rec.height !== undefined && (
                   <span style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>
-                    {rec.height} cm
+                    {fmtHeight(rec.height, units)}
                   </span>
                 )}
               </div>
@@ -805,9 +814,12 @@ export function IrisDetailScreen({
   openFlowering,
   openPollination,
   openPhotoViewer,
+  openEdit,
   toast,
 }: IrisDetailScreenProps) {
-  const { byId } = useData()
+  const { byId, toggleFav, setStatus, deleteIris, units } = useData()
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const fmtH = (cm: number) => fmtHeight(cm, units)
   const iris = byId(id)
 
   if (!iris) {
@@ -907,6 +919,52 @@ export function IrisDetailScreen({
         <StatusBadge status={iris.status} />
       </div>
 
+      {/* ── Management bar: status / favourite / edit / delete ── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderBottom: '1px solid var(--line)', flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative' }}>
+          <select
+            value={iris.status}
+            onChange={e => { setStatus(iris.id, e.target.value).then(() => toast('Status updated')).catch(() => toast('Could not update')) }}
+            style={{ appearance: 'none', padding: '8px 30px 8px 12px', borderRadius: 999, border: '1px solid var(--line-2)', background: 'var(--surface)', fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', fontFamily: 'Lexend, sans-serif', cursor: 'pointer' }}
+          >
+            {STATUS_OPTIONS.map(s => (<option key={s} value={s}>{s}</option>))}
+          </select>
+          <Icon name="chevron" size={14} stroke="var(--ink-3)" style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%) rotate(90deg)', pointerEvents: 'none' }} />
+        </div>
+
+        <button
+          onClick={() => { toggleFav(iris.id).then(() => toast(iris.fav ? 'Removed from favourites' : 'Added to favourites')) }}
+          style={{ ...btnReset, cursor: 'pointer', width: 38, height: 38, borderRadius: 10, border: `1px solid ${iris.fav ? 'var(--amber-line)' : 'var(--line)'}`, background: iris.fav ? 'var(--amber-bg)' : 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          aria-label="Toggle favourite"
+        >
+          <Icon name="star" size={18} stroke={iris.fav ? 'var(--amber)' : 'var(--ink-4)'} sw={2} />
+        </button>
+
+        <button
+          onClick={() => openEdit(iris)}
+          style={{ ...btnReset, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 999, border: '1px solid var(--line-2)', background: 'var(--surface)', fontSize: 13.5, fontWeight: 600, color: 'var(--ink-2)' }}
+        >
+          <Icon name="sliders" size={15} stroke="var(--ink-2)" sw={1.9} />Edit
+        </button>
+
+        <div style={{ flex: 1 }} />
+
+        {!confirmDelete ? (
+          <button
+            onClick={() => setConfirmDelete(true)}
+            style={{ ...btnReset, cursor: 'pointer', width: 38, height: 38, borderRadius: 10, border: '1px solid var(--rose-line)', background: 'var(--rose-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            aria-label="Delete plant"
+          >
+            <Icon name="x" size={18} stroke="var(--rose)" sw={2} />
+          </button>
+        ) : (
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button onClick={() => setConfirmDelete(false)} style={{ ...btnReset, cursor: 'pointer', padding: '8px 12px', borderRadius: 10, border: '1px solid var(--line)', background: 'var(--surface)', fontSize: 13, fontWeight: 600, color: 'var(--ink-2)' }}>Cancel</button>
+            <button onClick={async () => { try { await deleteIris(iris.id); toast('Plant deleted'); go(-1) } catch { toast('Could not delete') } }} style={{ ...btnReset, cursor: 'pointer', padding: '8px 12px', borderRadius: 10, background: 'var(--rose)', color: '#fff', fontSize: 13, fontWeight: 600 }}>Delete plant</button>
+          </div>
+        )}
+      </div>
+
       {/* ── Hero thumbnail ── */}
       <div
         style={{
@@ -960,7 +1018,7 @@ export function IrisDetailScreen({
                 border: '1px solid var(--line)',
               }}
             >
-              {iris.height}
+              {Number.isFinite(parseInt(iris.height!, 10)) ? fmtH(parseInt(iris.height!, 10)) : iris.height}
             </span>
           )}
           {iris.season && iris.season !== '—' && (

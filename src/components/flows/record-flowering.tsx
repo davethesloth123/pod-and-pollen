@@ -60,11 +60,13 @@ export function RecordFloweringFlow({ open, iris, onClose, onSaved }: RecordFlow
     try {
       const [y, m, d] = date.split('-')
       const displayDate = y ? `${d}/${m}/${y}` : date
+      const newStatus = (iris.kind === 'Seedling' && iris.status === 'Growing') ? 'First flower' : 'Flowering'
       await addFlowering({
         irisId: iris.id,
         year: y ? Number(y) : new Date().getFullYear(),
         first: displayDate,
         notes: notes.trim() || undefined,
+        setStatus: newStatus,
       })
       onSaved(displayDate)
       handleClose()
@@ -120,31 +122,6 @@ export function RecordFloweringFlow({ open, iris, onClose, onSaved }: RecordFlow
             autoFocus
           />
         </div>
-
-        {/* Photo prompt */}
-        <button
-          style={{
-            ...btnReset,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            padding: '12px 14px',
-            borderRadius: 12,
-            border: '1px dashed var(--line-2)',
-            background: 'var(--surface)',
-            cursor: 'pointer',
-            width: '100%',
-          }}
-        >
-          <span style={{ width: 38, height: 38, borderRadius: 10, background: 'var(--accent-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Icon name="camera" size={20} stroke="var(--accent)" sw={1.9} />
-          </span>
-          <div style={{ textAlign: 'left' }}>
-            <div style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--ink)' }}>Add photo</div>
-            <div style={{ fontSize: 13, color: 'var(--ink-3)' }}>Capture this flowering moment</div>
-          </div>
-          <Icon name="chevron" size={18} stroke="var(--ink-4)" style={{ marginLeft: 'auto' }} />
-        </button>
 
         {error && (
           <div style={{ padding: 12, background: 'var(--rose-bg)', border: '1px solid var(--rose-line)', borderRadius: 12, fontSize: 13.5, color: 'var(--rose)' }}>{error}</div>

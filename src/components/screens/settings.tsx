@@ -5,6 +5,21 @@ import { IrisBloom } from '@/components/ui/iris-bloom'
 import { SectionLabel, btnReset } from '@/components/ui/shared'
 import { DEFAULT_WIDGETS, WIDGETS, PAL } from '@/lib/data'
 import { createClient } from '@/lib/supabase/client'
+import { useData } from '@/lib/data-context'
+
+// ─── ComingSoon pill ──────────────────────────────────────────
+function ComingSoonPill() {
+  return (
+    <span style={{
+      fontSize: 10.5, fontWeight: 700, letterSpacing: 0.3,
+      color: 'var(--ink-4)', background: 'var(--surface-2)',
+      border: '1px solid var(--line)', borderRadius: 999,
+      padding: '2px 8px', textTransform: 'uppercase', flexShrink: 0,
+    }}>
+      Coming soon
+    </span>
+  )
+}
 
 // ─── SetSection ───────────────────────────────────────────────
 function SetSection({ label, children }: { label: string; children: React.ReactNode }) {
@@ -36,21 +51,24 @@ interface SetRowProps {
   chevron?: boolean
   tint?: 'accent' | 'rose'
   isLast?: boolean
+  comingSoon?: boolean
 }
 
-function SetRow({ icon, label, sub, onClick, chevron = true, tint = 'accent', isLast }: SetRowProps) {
+function SetRow({ icon, label, sub, onClick, chevron = true, tint = 'accent', isLast, comingSoon }: SetRowProps) {
   return (
     <button
-      onClick={onClick}
+      onClick={comingSoon ? undefined : onClick}
+      disabled={comingSoon}
       style={{
         ...btnReset,
-        cursor: 'pointer',
+        cursor: comingSoon ? 'default' : 'pointer',
         width: '100%',
         display: 'flex',
         alignItems: 'center',
         gap: 12,
         padding: '13px 14px',
         borderBottom: isLast ? 'none' : '1px solid var(--line)',
+        opacity: comingSoon ? 0.55 : 1,
       }}
     >
       <span style={{
@@ -58,14 +76,65 @@ function SetRow({ icon, label, sub, onClick, chevron = true, tint = 'accent', is
         background: tint === 'rose' ? 'var(--rose-bg)' : 'var(--accent-bg)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
       }}>
-        <Icon name={icon} size={17} stroke={tint === 'rose' ? 'var(--rose)' : 'var(--accent)'} sw={1.9} />
+        <Icon name={icon} size={17} stroke={comingSoon ? 'var(--ink-4)' : (tint === 'rose' ? 'var(--rose)' : 'var(--accent)')} sw={1.9} />
       </span>
       <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-        <div style={{ fontSize: 15, fontWeight: 500, color: tint === 'rose' ? 'var(--rose)' : 'var(--ink)' }}>{label}</div>
+        <div style={{ fontSize: 15, fontWeight: 500, color: comingSoon ? 'var(--ink-3)' : (tint === 'rose' ? 'var(--rose)' : 'var(--ink)') }}>{label}</div>
         {sub && <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 1 }}>{sub}</div>}
       </div>
-      {chevron && <Icon name="chevron" size={18} stroke="var(--ink-4)" />}
+      {comingSoon ? <ComingSoonPill /> : (chevron && <Icon name="chevron" size={18} stroke="var(--ink-4)" />)}
     </button>
+  )
+}
+
+// ─── Units segmented control ──────────────────────────────────
+function UnitsRow({ units, setUnits, isLast }: { units: 'cm' | 'in'; setUnits: (u: 'cm' | 'in') => void; isLast?: boolean }) {
+  const opts: { k: 'cm' | 'in'; label: string }[] = [
+    { k: 'cm', label: 'cm' },
+    { k: 'in', label: 'in' },
+  ]
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 12,
+      padding: '13px 14px',
+      borderBottom: isLast ? 'none' : '1px solid var(--line)',
+    }}>
+      <span style={{
+        width: 34, height: 34, borderRadius: 9,
+        background: 'var(--accent-bg)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+      }}>
+        <Icon name="sliders" size={17} stroke="var(--accent)" sw={1.9} />
+      </span>
+      <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+        <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--ink)' }}>Measurement units</div>
+        <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 1 }}>Used for heights and spacing</div>
+      </div>
+      <div style={{
+        display: 'flex', gap: 2, padding: 2, borderRadius: 10,
+        background: 'var(--surface-2)', border: '1px solid var(--line)', flexShrink: 0,
+      }}>
+        {opts.map(opt => {
+          const active = units === opt.k
+          return (
+            <button
+              key={opt.k}
+              onClick={() => setUnits(opt.k)}
+              style={{
+                ...btnReset, cursor: 'pointer',
+                padding: '6px 14px', borderRadius: 8,
+                fontSize: 13.5, fontWeight: 600,
+                background: active ? 'var(--accent)' : 'transparent',
+                color: active ? '#fff' : 'var(--ink-2)',
+                transition: 'all .15s',
+              }}
+            >
+              {opt.label}
+            </button>
+          )
+        })}
+      </div>
+    </div>
   )
 }
 
@@ -81,6 +150,7 @@ interface SettingsScreenProps {
 }
 
 export function SettingsScreen({ go, toast, signOut, user: userProp, onSignOut, onImport }: SettingsScreenProps) {
+  const { units, setUnits } = useData()
   const [userData, setUserData] = useState<any>(userProp || null)
   const [confirmSignOut, setConfirmSignOut] = useState(false)
 
@@ -100,11 +170,6 @@ export function SettingsScreen({ go, toast, signOut, user: userProp, onSignOut, 
     if (!confirmSignOut) { setConfirmSignOut(true); return }
     if (onSignOut) onSignOut()
     else if (signOut) signOut()
-  }
-
-  const handleImport = () => {
-    if (onImport) onImport()
-    else go('import')
   }
 
   return (
@@ -158,8 +223,8 @@ export function SettingsScreen({ go, toast, signOut, user: userProp, onSignOut, 
       {/* ── Data ── */}
       <SetSection label="Data">
         <SetRow icon="sliders" label="Customize home" sub="Rearrange your dashboard widgets" onClick={() => go('customize')} />
-        <SetRow icon="upload" label="Import" sub="Import irises from CSV or JSON" onClick={handleImport} />
-        <SetRow icon="note" label="Export data" sub="Download all your data" onClick={() => toast('Export coming soon')} isLast />
+        <SetRow icon="upload" label="Import" sub="Import irises from CSV or JSON" comingSoon />
+        <SetRow icon="note" label="Export data" sub="Download all your data" comingSoon isLast />
       </SetSection>
 
       {/* ── Garden ── */}
@@ -170,7 +235,8 @@ export function SettingsScreen({ go, toast, signOut, user: userProp, onSignOut, 
 
       {/* ── Display ── */}
       <SetSection label="Display">
-        <SetRow icon="eye" label="Text size" sub="Adjust reading comfort" onClick={() => toast('Coming soon')} isLast />
+        <UnitsRow units={units} setUnits={setUnits} />
+        <SetRow icon="eye" label="Text size" sub="Adjust reading comfort" comingSoon isLast />
       </SetSection>
 
       {/* ── Help & feedback ── */}

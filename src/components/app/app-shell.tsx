@@ -403,6 +403,7 @@ export function AppShell() {
             openFlowering={(iris: any) => setSheet({ kind: 'flowering', iris })}
             openPollination={(iris: any) => setSheet({ kind: 'pollination', iris })}
             openPhotoViewer={(photos: any[], index: number) => setSheet({ kind: 'photoViewer', photos, index })}
+            openEdit={(iris: any) => setSheet({ kind: 'add', editIris: iris })}
             toast={toast}
           />
         )
@@ -483,12 +484,13 @@ export function AppShell() {
   // ── Overlays shared by both layouts ──────────────────────────
   const overlays = (
     <>
-      {/* Add iris */}
+      {/* Add / edit iris */}
       <AddIrisFlow
         open={sheet?.kind === 'add'}
         presetCross={sheet?.presetCross}
+        editIris={sheet?.editIris}
         onClose={closeSheet}
-        onSaved={(name: string) => { closeSheet(); toast(`"${name}" added`) }}
+        onSaved={(name: string) => { closeSheet(); toast(sheet?.editIris ? `"${name}" updated` : `"${name}" added`) }}
       />
 
       {/* Add location */}

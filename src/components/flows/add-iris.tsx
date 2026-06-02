@@ -1,8 +1,9 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Icon } from '@/components/ui/icon'
 import { Sheet, btnReset } from '@/components/ui/shared'
 import { useData } from '@/lib/data-context'
+import type { Iris } from '@/types'
 
 // Section title without the accent dot (used only in this form)
 function SectionTitle({ children }: { children: React.ReactNode }) {
@@ -18,6 +19,7 @@ interface AddIrisFlowProps {
   onClose: () => void
   onSaved: (name: string) => void
   presetCross?: any
+  editIris?: Iris
 }
 
 const KINDS = ['Variety', 'Seedling']
@@ -72,8 +74,10 @@ const labelStyle: React.CSSProperties = {
   display: 'block',
 }
 
-export function AddIrisFlow({ open, onClose, onSaved, presetCross }: AddIrisFlowProps) {
-  const { irises, locations, addIris } = useData()
+const CM_PER_IN = 2.54
+export function AddIrisFlow({ open, onClose, onSaved, presetCross, editIris }: AddIrisFlowProps) {
+  const { irises, locations, addIris, updateIris, units } = useData()
+  const editing = !!editIris
   const [name, setName] = useState('')
   const [kind, setKind] = useState('Variety')
   const [cls, setCls] = useState('TB')
@@ -98,6 +102,35 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross }: AddIrisFlow
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  // Prefill when opening in edit mode
+  useEffect(() => {
+    if (!open || !editIris) return
+    setName(editIris.name || '')
+    setKind(editIris.kind || 'Variety')
+    setCls(editIris.cls || 'TB')
+    setColourType(editIris.colorType || 'Self')
+    setBreeder(editIris.breeder || '')
+    setYearReleased(editIris.yearReleased ? String(editIris.yearReleased) : '')
+    setColorStandards(editIris.colorDef?.standards || '')
+    setColorFalls(editIris.colorDef?.falls || '')
+    setColorBeard(editIris.colorDef?.beard || '')
+    setColorStyleArms(editIris.colorDef?.styleArms || '')
+    {
+      const cm = editIris.height ? parseInt(editIris.height, 10) : NaN
+      setHeight(Number.isFinite(cm) ? String(units === 'in' ? Math.round(cm / CM_PER_IN) : cm) : '')
+    }
+    setFloweringPeriod(editIris.season || '')
+    const fr = (editIris.fragrance || '').split(' · ')
+    setFragranceLevel(fr[0] || '')
+    setFragranceType(fr[1] || '')
+    setPodParent(editIris.podParent || '')
+    setPollenParent(editIris.pollenParent || '')
+    setLoc(editIris.locationId || '')
+    setGridRef(editIris.gridRef || '')
+    setYear(editIris.planted || '')
+    setNotes('')
+  }, [open, editIris])
 
   const irisNames = irises.map(i => i.name)
 
@@ -143,27 +176,52 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross }: AddIrisFlow
     try {
       const isVariety = kind === 'Variety'
       const fragrance = isVariety ? [fragranceLevel, fragranceType].filter(Boolean).join(' · ') : ''
-      await addIris({
-        name: name.trim(),
-        kind,
-        classification: cls,
-        colorType: isVariety ? colourType : undefined,
-        podParent: podParent.trim() || undefined,
-        pollenParent: pollenParent.trim() || undefined,
-        locationId: loc || null,
-        gridRef: gridRef.trim() || undefined,
-        plantedDate: year.trim() || undefined,
-        height: isVariety && height ? Number(height) : undefined,
-        season: isVariety ? floweringPeriod || undefined : undefined,
-        fragrance: fragrance || undefined,
-        breeder: isVariety ? breeder.trim() || undefined : undefined,
-        yearReleased: isVariety && yearReleased ? Number(yearReleased) : undefined,
-        colorStandards: isVariety ? colorStandards.trim() || undefined : undefined,
-        colorFalls: isVariety ? colorFalls.trim() || undefined : undefined,
-        colorBeard: isVariety ? colorBeard.trim() || undefined : undefined,
-        colorStyleArms: isVariety ? colorStyleArms.trim() || undefined : undefined,
-        note: notes.trim() || undefined,
-      })
+      const heightCm = height ? (units === 'in' ? Math.round(Number(height) * CM_PER_IN) : Number(height)) : null
+      if (editing && editIris) {
+        // Edit: send '' to clear fields; updateIris maps '' → null
+        await updateIris(editIris.id, {
+          name: name.trim(),
+          kind,
+          classification: cls,
+          colorType: isVariety ? colourType : undefined,
+          podParent: podParent.trim(),
+          pollenParent: pollenParent.trim(),
+          locationId: loc || null,
+          gridRef: gridRef.trim(),
+          plantedDate: year.trim(),
+          height: isVariety ? heightCm : undefined,
+          season: isVariety ? floweringPeriod : undefined,
+          fragrance: isVariety ? fragrance : undefined,
+          breeder: isVariety ? breeder.trim() : undefined,
+          yearReleased: isVariety ? (yearReleased ? Number(yearReleased) : null) : undefined,
+          colorStandards: isVariety ? colorStandards.trim() : undefined,
+          colorFalls: isVariety ? colorFalls.trim() : undefined,
+          colorBeard: isVariety ? colorBeard.trim() : undefined,
+          colorStyleArms: isVariety ? colorStyleArms.trim() : undefined,
+        })
+      } else {
+        await addIris({
+          name: name.trim(),
+          kind,
+          classification: cls,
+          colorType: isVariety ? colourType : undefined,
+          podParent: podParent.trim() || undefined,
+          pollenParent: pollenParent.trim() || undefined,
+          locationId: loc || null,
+          gridRef: gridRef.trim() || undefined,
+          plantedDate: year.trim() || undefined,
+          height: isVariety && heightCm ? heightCm : undefined,
+          season: isVariety ? floweringPeriod || undefined : undefined,
+          fragrance: fragrance || undefined,
+          breeder: isVariety ? breeder.trim() || undefined : undefined,
+          yearReleased: isVariety && yearReleased ? Number(yearReleased) : undefined,
+          colorStandards: isVariety ? colorStandards.trim() || undefined : undefined,
+          colorFalls: isVariety ? colorFalls.trim() || undefined : undefined,
+          colorBeard: isVariety ? colorBeard.trim() || undefined : undefined,
+          colorStyleArms: isVariety ? colorStyleArms.trim() || undefined : undefined,
+          note: notes.trim() || undefined,
+        })
+      }
       onSaved(name.trim())
       handleClose()
     } catch (e) {
@@ -261,7 +319,7 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross }: AddIrisFlow
       <div style={{ display: 'flex', gap: 8 }}>
         <div style={{ flex: 1 }}>
           {/* Stored in cm; a future Settings option will let users switch to inches */}
-          <label style={labelStyle}>HEIGHT (CM)</label>
+          <label style={labelStyle}>HEIGHT ({units === 'in' ? 'IN' : 'CM'})</label>
           <input style={inputStyle} type="number" inputMode="numeric" placeholder="e.g. 95" value={height} onChange={e => setHeight(e.target.value)} min="0" max="250" />
         </div>
         <div style={{ flex: 1 }}>
@@ -348,11 +406,13 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross }: AddIrisFlow
         <label style={labelStyle}>YEAR ACQUIRED / PLANTED</label>
         <input style={inputStyle} type="number" value={year} onChange={e => setYear(e.target.value)} min="1990" max={new Date().getFullYear() + 1} />
       </div>
-      <div>
-        <label style={labelStyle}>NOTES</label>
-        <textarea style={{ ...inputStyle, minHeight: 80, resize: 'vertical', lineHeight: 1.5 }}
-          placeholder="Source, colour description, anything notable…" value={notes} onChange={e => setNotes(e.target.value)} />
-      </div>
+      {!editing && (
+        <div>
+          <label style={labelStyle}>NOTES</label>
+          <textarea style={{ ...inputStyle, minHeight: 80, resize: 'vertical', lineHeight: 1.5 }}
+            placeholder="Source, colour description, anything notable…" value={notes} onChange={e => setNotes(e.target.value)} />
+        </div>
+      )}
     </>
   )
 
@@ -366,7 +426,7 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross }: AddIrisFlow
         background: canSave ? 'var(--accent)' : 'var(--line)', color: '#fff', fontSize: 15.5, fontWeight: 600,
         cursor: canSave ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
       }}>
-        <Icon name="check" size={18} stroke="#fff" sw={2.4} />{saving ? 'Saving…' : 'Save Iris'}
+        <Icon name="check" size={18} stroke="#fff" sw={2.4} />{saving ? 'Saving…' : editing ? 'Save changes' : 'Save Iris'}
       </button>
     </div>
   )
@@ -375,7 +435,7 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross }: AddIrisFlow
 
   // ── Single screen (mobile bottom sheet + desktop modal) ──
   return (
-    <Sheet open={open} onClose={handleClose} title="Add Iris">
+    <Sheet open={open} onClose={handleClose} title={editing ? 'Edit Iris' : 'Add Iris'}>
       <div style={{ padding: '16px 18px 24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {basicFields}
