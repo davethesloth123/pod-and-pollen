@@ -4,7 +4,6 @@ import { Icon } from '@/components/ui/icon'
 import {
   IrisCard, SectionLabel, Chip, Segmented, btnReset, EmptyState,
 } from '@/components/ui/shared'
-import { crosses } from '@/lib/data'
 import { useData } from '@/lib/data-context'
 import type { Iris } from '@/types'
 
@@ -94,13 +93,13 @@ function CrossBanner({
 
 // ─── Collection screen ────────────────────────────────────────
 export function CollectionScreen({ go, wide, openAdd, params }: CollectionScreenProps) {
-  const { irises } = useData()
+  const { irises, crosses } = useData()
   const [filter, setFilter] = useState('All')
   const [view, setView] = useState<'grid' | 'list'>('grid')
   const [crossFilter, setCrossFilter] = useState(params?.cross)
 
   // Resolve cross info for the banner
-  const crossObj = crossFilter ? crosses[crossFilter] : null
+  const crossObj = crossFilter ? crosses.find(c => c.id === crossFilter) : null
 
   // Apply filters
   let list: Iris[] = irises

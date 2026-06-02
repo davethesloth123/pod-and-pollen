@@ -898,11 +898,14 @@ export function IrisDetailScreen({
           {iris.kind}
         </div>
 
-        {/* Parent chips */}
+        {/* Parentage */}
         {iris.podParent && (
-          <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-            <ParentChip role="Pod" name={iris.podParent} go={go} />
-            <ParentChip role="Pollen" name={iris.pollenParent} go={go} />
+          <div style={{ marginTop: 14 }}>
+            <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', color: 'var(--ink-4)', marginBottom: 8 }}>Parentage</div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <ParentChip role="Pod" name={iris.podParent} go={go} />
+              <ParentChip role="Pollen" name={iris.pollenParent} go={go} />
+            </div>
           </div>
         )}
 

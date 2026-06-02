@@ -160,8 +160,13 @@ function AppHeader({ tab, user, onSettings }: AppHeaderProps) {
   if (tab === 'home') {
     return (
       <div style={stickyHeader}>
-        <span className="h-display" style={{ fontSize: 20, letterSpacing: -0.01 }}>
-          Pod<span style={{ color: 'var(--accent)', fontStyle: 'italic', fontWeight: 500, marginLeft: '0.18em', marginRight: '0.28em' }}>&amp;</span>Pollen
+        <span style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+          <span style={{ width: 30, height: 30, borderRadius: 9, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 6px var(--accent-shadow)' }}>
+            <Icon name="iris" size={19} stroke="#fff" sw={1.9} />
+          </span>
+          <span className="h-display" style={{ fontSize: 20, letterSpacing: -0.01 }}>
+            Pod<span style={{ color: 'var(--accent)', fontStyle: 'italic', fontWeight: 500, marginLeft: '0.18em', marginRight: '0.28em' }}>&amp;</span>Pollen
+          </span>
         </span>
         <button
           onClick={onSettings}
@@ -257,10 +262,16 @@ export function AppShell() {
   const [user, setUser] = useState<any>(null)
 
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const scrollRef = useRef<HTMLDivElement | null>(null)
 
   // ── Derived ──────────────────────────────────────────────────
   const view = stack.length > 0 ? stack[stack.length - 1].view : tab
   const params = stack.length > 0 ? stack[stack.length - 1].params : {}
+
+  // Always open a screen scrolled to the top
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = 0
+  }, [view, stack.length])
 
   // ── Bootstrap ────────────────────────────────────────────────
   useEffect(() => {
@@ -602,7 +613,7 @@ export function AppShell() {
             onSettings={() => go('settings')}
             user={user}
           />
-          <main style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+          <main ref={scrollRef} style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
             <div style={{ maxWidth: 1020, margin: '0 auto', padding: '0 16px 40px' }}>
               {desktopTitle && (
                 <div style={{ padding: '26px 4px 10px' }}>
@@ -625,7 +636,7 @@ export function AppShell() {
       <ConnectivityBanner />
       {showHeader && <AppHeader tab={tab} user={user} onSettings={() => go('settings')} />}
       {showSettingsHeader && <SettingsHeader onBack={() => go(-1)} />}
-      <div style={{ flex: 1, overflow: 'auto', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
+      <div ref={scrollRef} style={{ flex: 1, overflow: 'auto', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
         {renderScreen()}
       </div>
       <BottomNav tab={tab} onTab={onTab} onAdd={openAdd} />

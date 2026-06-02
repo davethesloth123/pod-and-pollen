@@ -42,16 +42,25 @@ function ParentField({ label, value, search, onPick, onSearch, names }: {
   label: string; value: string; search: string
   onPick: (v: string) => void; onSearch: (v: string) => void; names: string[]
 }) {
-  const filtered = search ? names.filter(n => n.toLowerCase().includes(search.toLowerCase())) : []
+  const [focused, setFocused] = useState(false)
+  const q = search.trim().toLowerCase()
+  const matches = q ? names.filter(n => n.toLowerCase().includes(q)) : names
+  const showList = focused && !value && matches.length > 0
   return (
     <div>
       <label style={labelStyle}>{label}</label>
-      <input style={inputStyle} placeholder="Search iris by name…" value={value || search}
-        onChange={e => { onPick(''); onSearch(e.target.value) }} />
-      {filtered.length > 0 && !value && (
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 12, marginTop: 4, overflow: 'hidden' }}>
-          {filtered.slice(0, 5).map(n => (
-            <button key={n} onClick={() => { onPick(n); onSearch('') }}
+      <input
+        style={inputStyle}
+        placeholder={names.length ? 'Search or pick an iris…' : 'No irises in your collection yet'}
+        value={value || search}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setTimeout(() => setFocused(false), 150)}
+        onChange={e => { onPick(''); onSearch(e.target.value) }}
+      />
+      {showList && (
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 12, marginTop: 4, overflow: 'hidden', maxHeight: 220, overflowY: 'auto' }}>
+          {matches.slice(0, 12).map(n => (
+            <button key={n} onMouseDown={() => { onPick(n); onSearch(''); setFocused(false) }}
               style={{ ...btnReset, width: '100%', textAlign: 'left', padding: '11px 14px', fontSize: 15, color: 'var(--ink)', borderBottom: '1px solid var(--line)', cursor: 'pointer' }}>{n}</button>
           ))}
         </div>

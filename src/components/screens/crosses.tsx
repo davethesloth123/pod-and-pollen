@@ -495,7 +495,6 @@ export function CompareScreen({ ids, go, wide }: {
                   <div style={{ fontSize: 12.5, color: 'var(--ink-3)', lineHeight: 1.5 }}>
                     <div>{iris.cls}</div>
                     {iris.loc && <div>{iris.loc}</div>}
-                    {iris.generation && <div>Generation: {iris.generation}</div>}
                     {iris.firstFlower && <div>First flower: {iris.firstFlower}</div>}
                   </div>
 

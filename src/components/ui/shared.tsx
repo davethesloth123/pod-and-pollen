@@ -410,39 +410,30 @@ export function LifecycleRail({ iris, onStage }: { iris: Iris; onStage?: (s: Lif
   const stateColor: Record<string, string> = { done: 'var(--green)', active: 'var(--accent)', next: 'var(--ink-4)', na: 'var(--ink-5)' }
   const stateBg: Record<string, string> = { done: 'var(--green-bg)', active: 'var(--accent-bg)', next: 'var(--surface-2)', na: 'var(--surface-2)' }
   return (
-    <div style={{ padding: '4px 2px' }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', overflowX: 'auto', padding: '6px 2px 2px', scrollbarWidth: 'none' } as React.CSSProperties}>
       {steps.map((s, i) => {
         const last = i === steps.length - 1
         const dotC = stateColor[s.state]
         const isDone = s.state === 'done', isActive = s.state === 'active', isNa = s.state === 'na'
         return (
-          <div key={s.key} style={{ display: 'flex', gap: 13, opacity: isNa ? 0.5 : 1 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 36 }}>
+          <div key={s.key} style={{ display: 'flex', alignItems: 'flex-start', flex: '0 0 auto' }}>
+            <button
+              onClick={() => onStage?.(s)}
+              disabled={isNa}
+              title={s.detail || s.label}
+              style={{ ...btnReset, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, width: 66, cursor: isNa ? 'default' : 'pointer', opacity: isNa ? 0.5 : 1 }}
+            >
               <span style={{
-                width: 36, height: 36, borderRadius: 999, flexShrink: 0,
+                width: 30, height: 30, borderRadius: 999, flexShrink: 0,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 background: stateBg[s.state], border: `2px solid ${dotC}`,
-                boxShadow: isActive ? '0 0 0 4px var(--accent-ring)' : 'none',
+                boxShadow: isActive ? '0 0 0 3px var(--accent-ring)' : 'none',
               }}>
-                {isDone
-                  ? <Icon name="check" size={18} stroke={dotC} sw={2.4} />
-                  : <Icon name={s.icon} size={17} stroke={dotC} sw={2} />}
+                {isDone ? <Icon name="check" size={15} stroke={dotC} sw={2.6} /> : <Icon name={s.icon} size={14} stroke={dotC} sw={2} />}
               </span>
-              {!last && <span style={{ width: 2, flex: 1, minHeight: 16,
-                background: isDone ? 'var(--green)' : 'var(--line)', borderRadius: 2 }} />}
-            </div>
-            <button onClick={() => onStage?.(s)} disabled={isNa} style={{
-              ...btnReset, flex: 1, textAlign: 'left', paddingBottom: last ? 2 : 16, marginTop: 5,
-              cursor: isNa ? 'default' : 'pointer',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 15.5, fontWeight: 600, color: isNa ? 'var(--ink-4)' : 'var(--ink)' }}>{s.label}</span>
-                {isActive && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-2-ink)', letterSpacing: 0.4,
-                  background: 'var(--accent-2-bg)', border: '1px solid var(--accent-2-line)', padding: '2px 8px', borderRadius: 999 }}>NOW</span>}
-                {isNa && <span style={{ fontSize: 12, color: 'var(--ink-4)' }}>· not applicable</span>}
-              </div>
-              {s.detail && <div style={{ fontSize: 13.5, color: 'var(--ink-3)', marginTop: 3, lineHeight: 1.4 }}>{s.detail}</div>}
+              <span style={{ fontSize: 10.5, fontWeight: 600, textAlign: 'center', lineHeight: 1.2, color: isNa ? 'var(--ink-4)' : isActive ? 'var(--accent)' : 'var(--ink-2)' }}>{s.label}</span>
             </button>
+            {!last && <span style={{ width: 16, height: 2, marginTop: 14, borderRadius: 2, flexShrink: 0, background: isDone ? 'var(--green)' : 'var(--line)' }} />}
           </div>
         )
       })}
