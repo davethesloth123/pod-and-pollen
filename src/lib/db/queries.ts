@@ -124,6 +124,8 @@ export interface NewIris {
   plantedDate?: string
   podParent?: string
   pollenParent?: string
+  height?: number
+  season?: string
   fragrance?: string
   breeder?: string
   yearReleased?: number
@@ -159,6 +161,8 @@ export async function insertIris(supabase: SupabaseClient, userId: string, input
       planted_date: input.plantedDate || null,
       pod_parent: input.podParent || null,
       pollen_parent: input.pollenParent || null,
+      height_cm: input.height ?? null,
+      season: input.season || null,
       fragrance: input.fragrance || null,
       breeder: input.breeder || null,
       year_released: input.yearReleased ?? null,

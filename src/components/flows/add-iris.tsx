@@ -2,7 +2,6 @@
 import { useState } from 'react'
 import { Icon } from '@/components/ui/icon'
 import { Sheet, btnReset, SectionLabel } from '@/components/ui/shared'
-import { useIsDesktop } from '@/lib/use-is-desktop'
 import { useData } from '@/lib/data-context'
 
 interface AddIrisFlowProps {
@@ -64,26 +63,8 @@ const labelStyle: React.CSSProperties = {
   display: 'block',
 }
 
-function StepDots({ step, total }: { step: number; total: number }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center', padding: '4px 0 16px' }}>
-      {Array.from({ length: total }).map((_, i) => (
-        <span key={i} style={{
-          width: i === step ? 22 : 8,
-          height: 8,
-          borderRadius: 999,
-          background: i === step ? 'var(--accent)' : 'var(--line-2)',
-          transition: 'all .2s',
-        }} />
-      ))}
-    </div>
-  )
-}
-
 export function AddIrisFlow({ open, onClose, onSaved, presetCross }: AddIrisFlowProps) {
-  const isDesktop = useIsDesktop()
   const { irises, locations, addIris } = useData()
-  const [step, setStep] = useState(0)
   const [name, setName] = useState('')
   const [kind, setKind] = useState('Variety')
   const [cls, setCls] = useState('TB')
@@ -93,6 +74,8 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross }: AddIrisFlow
   const [colorFalls, setColorFalls] = useState('')
   const [colorBeard, setColorBeard] = useState('')
   const [colorStyleArms, setColorStyleArms] = useState('')
+  const [height, setHeight] = useState('')
+  const [floweringPeriod, setFloweringPeriod] = useState('')
   const [fragranceLevel, setFragranceLevel] = useState('')
   const [fragranceType, setFragranceType] = useState('')
   const [breeder, setBreeder] = useState('')
@@ -118,7 +101,6 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross }: AddIrisFlow
     : []
 
   function handleClose() {
-    setStep(0)
     setName('')
     setKind('Variety')
     setCls('TB')
@@ -128,6 +110,8 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross }: AddIrisFlow
     setColorFalls('')
     setColorBeard('')
     setColorStyleArms('')
+    setHeight('')
+    setFloweringPeriod('')
     setFragranceLevel('')
     setFragranceType('')
     setBreeder('')
@@ -162,6 +146,8 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross }: AddIrisFlow
         locationId: loc || null,
         gridRef: gridRef.trim() || undefined,
         plantedDate: year.trim() || undefined,
+        height: isVariety && height ? Number(height) : undefined,
+        season: isVariety ? floweringPeriod || undefined : undefined,
         fragrance: fragrance || undefined,
         breeder: isVariety ? breeder.trim() || undefined : undefined,
         yearReleased: isVariety && yearReleased ? Number(yearReleased) : undefined,
@@ -252,6 +238,24 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross }: AddIrisFlow
                 <input style={inputStyle} placeholder={f.ph} value={f.value} onChange={e => f.set(e.target.value)} />
               </div>
             ))}
+          </div>
+          {/* Height + flowering period */}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ flex: 1 }}>
+              {/* Stored in cm; a future Settings option will let users switch to inches */}
+              <label style={labelStyle}>HEIGHT (CM)</label>
+              <input style={inputStyle} type="number" inputMode="numeric" placeholder="e.g. 95" value={height} onChange={e => setHeight(e.target.value)} min="0" max="250" />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>FLOWERING PERIOD</label>
+              <div style={{ position: 'relative' }}>
+                <select style={selectStyle} value={floweringPeriod} onChange={e => setFloweringPeriod(e.target.value)}>
+                  <option value="">— Select —</option>
+                  {['Early', 'Mid', 'Late'].map(o => (<option key={o} value={o}>{o}</option>))}
+                </select>
+                <Icon name="chevron" size={16} stroke="var(--ink-3)" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%) rotate(90deg)', pointerEvents: 'none' }} />
+              </div>
+            </div>
           </div>
           {/* Fragrance */}
           <div>
@@ -368,68 +372,23 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross }: AddIrisFlow
     </div>
   )
 
-  // ── Desktop: everything on one screen ──
-  if (isDesktop) {
-    return (
-      <Sheet open={open} onClose={handleClose} title="Add Iris">
-        <div style={{ padding: '18px 20px 24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {basicFields}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <SectionLabel>Parentage</SectionLabel>
-            {parentFields}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <SectionLabel>Location & notes</SectionLabel>
-            {locationFields}
-          </div>
-          {advancedSection}
-          {saveButton}
-        </div>
-      </Sheet>
-    )
-  }
-
-  // ── Mobile: 3-step flow ──
+  // ── Single screen (mobile bottom sheet + desktop modal) ──
   return (
     <Sheet open={open} onClose={handleClose} title="Add Iris">
-      <div style={{ padding: '0 18px 24px' }}>
-        <StepDots step={step} total={3} />
-
-        {step === 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-            {basicFields}
-            <button onClick={() => setStep(1)} disabled={!canSave} style={{
-              ...btnReset, width: '100%', padding: '15px', borderRadius: 14,
-              background: canSave ? 'var(--accent)' : 'var(--line)', color: '#fff', fontSize: 15.5, fontWeight: 600,
-              cursor: canSave ? 'pointer' : 'not-allowed', marginTop: 4,
-            }}>Next — Parents</button>
-          </div>
-        )}
-
-        {step === 1 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-            <SectionLabel>Parentage</SectionLabel>
-            {parentFields}
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setStep(0)} style={{ ...btnReset, flex: 1, padding: '14px', borderRadius: 14, border: '1px solid var(--line)', background: 'var(--surface)', fontSize: 15, fontWeight: 600, color: 'var(--ink-2)', cursor: 'pointer' }}>Back</button>
-              <button onClick={() => setStep(2)} style={{ ...btnReset, flex: 2, padding: '14px', borderRadius: 14, background: 'var(--accent)', color: '#fff', fontSize: 15.5, fontWeight: 600, cursor: 'pointer' }}>Next — Location</button>
-            </div>
-          </div>
-        )}
-
-        {step === 2 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-            <SectionLabel>Location & notes</SectionLabel>
-            {locationFields}
-            {advancedSection}
-            <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-              <button onClick={() => setStep(1)} style={{ ...btnReset, flex: 1, padding: '14px', borderRadius: 14, border: '1px solid var(--line)', background: 'var(--surface)', fontSize: 15, fontWeight: 600, color: 'var(--ink-2)', cursor: 'pointer' }}>Back</button>
-              <div style={{ flex: 2 }}>{saveButton}</div>
-            </div>
-          </div>
-        )}
+      <div style={{ padding: '16px 18px 24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {basicFields}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <SectionLabel>Parentage</SectionLabel>
+          {parentFields}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <SectionLabel>Location &amp; notes</SectionLabel>
+          {locationFields}
+        </div>
+        {advancedSection}
+        {saveButton}
       </div>
     </Sheet>
   )
