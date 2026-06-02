@@ -1,8 +1,17 @@
 'use client'
 import { useState } from 'react'
 import { Icon } from '@/components/ui/icon'
-import { Sheet, btnReset, SectionLabel } from '@/components/ui/shared'
+import { Sheet, btnReset } from '@/components/ui/shared'
 import { useData } from '@/lib/data-context'
+
+// Section title without the accent dot (used only in this form)
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ fontFamily: 'Bricolage Grotesque, system-ui, sans-serif', fontWeight: 600, fontSize: 18, color: 'var(--ink)', letterSpacing: -0.005, margin: '2px 2px 0' }}>
+      {children}
+    </div>
+  )
+}
 
 interface AddIrisFlowProps {
   open: boolean
@@ -69,7 +78,6 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross }: AddIrisFlow
   const [kind, setKind] = useState('Variety')
   const [cls, setCls] = useState('TB')
   const [colourType, setColourType] = useState('Self')
-  const [advancedOpen, setAdvancedOpen] = useState(false)
   const [colorStandards, setColorStandards] = useState('')
   const [colorFalls, setColorFalls] = useState('')
   const [colorBeard, setColorBeard] = useState('')
@@ -105,7 +113,6 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross }: AddIrisFlow
     setKind('Variety')
     setCls('TB')
     setColourType('Self')
-    setAdvancedOpen(false)
     setColorStandards('')
     setColorFalls('')
     setColorBeard('')
@@ -211,92 +218,84 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross }: AddIrisFlow
     </>
   )
 
-  // ── Advanced options (variety only): flower colour, fragrance, breeder, year of release ──
-  const advancedSection = kind === 'Variety' ? (
-    <div>
-      <button
-        type="button"
-        onClick={() => setAdvancedOpen(o => !o)}
-        style={{ ...btnReset, cursor: 'pointer', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 2px', borderTop: '1px solid var(--line)' }}
-      >
-        <span style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', color: 'var(--ink-3)' }}>Advanced options</span>
-        <Icon name="chevron" size={16} stroke="var(--ink-3)" style={{ transform: advancedOpen ? 'rotate(-90deg)' : 'rotate(90deg)', transition: 'transform .15s' }} />
-      </button>
-      {advancedOpen && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18, marginTop: 8 }}>
-          {/* Flower colour */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <SectionLabel>Flower colour</SectionLabel>
-            {[
-              { label: 'STANDARDS', value: colorStandards, set: setColorStandards, ph: 'e.g. Deep blue-violet, velvety substance' },
-              { label: 'FALLS', value: colorFalls, set: setColorFalls, ph: 'e.g. Near-black violet, blue undertone' },
-              { label: 'BEARD', value: colorBeard, set: setColorBeard, ph: 'e.g. Yellow at throat, tipped violet' },
-              { label: 'STYLE ARMS', value: colorStyleArms, set: setColorStyleArms, ph: 'e.g. Violet, crested midrib' },
-            ].map(f => (
-              <div key={f.label}>
-                <label style={labelStyle}>{f.label}</label>
-                <input style={inputStyle} placeholder={f.ph} value={f.value} onChange={e => f.set(e.target.value)} />
-              </div>
-            ))}
-          </div>
-          {/* Height + flowering period */}
-          <div style={{ display: 'flex', gap: 8 }}>
-            <div style={{ flex: 1 }}>
-              {/* Stored in cm; a future Settings option will let users switch to inches */}
-              <label style={labelStyle}>HEIGHT (CM)</label>
-              <input style={inputStyle} type="number" inputMode="numeric" placeholder="e.g. 95" value={height} onChange={e => setHeight(e.target.value)} min="0" max="250" />
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>FLOWERING PERIOD</label>
-              <div style={{ position: 'relative' }}>
-                <select style={selectStyle} value={floweringPeriod} onChange={e => setFloweringPeriod(e.target.value)}>
-                  <option value="">— Select —</option>
-                  {['Early', 'Mid', 'Late'].map(o => (<option key={o} value={o}>{o}</option>))}
-                </select>
-                <Icon name="chevron" size={16} stroke="var(--ink-3)" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%) rotate(90deg)', pointerEvents: 'none' }} />
-              </div>
-            </div>
-          </div>
-          {/* Fragrance */}
-          <div>
-            <label style={labelStyle}>FRAGRANCE</label>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <div style={{ position: 'relative', flex: 1 }}>
-                <select style={selectStyle} value={fragranceLevel} onChange={e => setFragranceLevel(e.target.value)}>
-                  <option value="">— Strength —</option>
-                  {FRAGRANCE_LEVELS.map(o => (<option key={o} value={o}>{o}</option>))}
-                </select>
-                <Icon name="chevron" size={16} stroke="var(--ink-3)" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%) rotate(90deg)', pointerEvents: 'none' }} />
-              </div>
-              <div style={{ position: 'relative', flex: 1 }}>
-                <select style={selectStyle} value={fragranceType} onChange={e => setFragranceType(e.target.value)}>
-                  <option value="">— Character —</option>
-                  {FRAGRANCE_TYPES.map(o => (<option key={o} value={o}>{o}</option>))}
-                </select>
-                <Icon name="chevron" size={16} stroke="var(--ink-3)" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%) rotate(90deg)', pointerEvents: 'none' }} />
-              </div>
-            </div>
-          </div>
-          {/* Breeder */}
-          <div>
-            <label style={labelStyle}>BREEDER</label>
-            <input style={inputStyle} placeholder="e.g. Schreiner's" value={breeder} onChange={e => setBreeder(e.target.value)} />
-          </div>
-          {/* Year of release */}
-          <div>
-            <label style={labelStyle}>YEAR OF RELEASE</label>
-            <div style={{ position: 'relative' }}>
-              <select style={selectStyle} value={yearReleased} onChange={e => setYearReleased(e.target.value)}>
-                <option value="">— Select year —</option>
-                {RELEASE_YEARS.map(y => (<option key={y} value={y}>{y}</option>))}
-              </select>
-              <Icon name="chevron" size={16} stroke="var(--ink-3)" style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%) rotate(90deg)', pointerEvents: 'none' }} />
-            </div>
+  // ── Breeder history (variety only) ──
+  const breederFields = (
+    <>
+      <div>
+        <label style={labelStyle}>BREEDER</label>
+        <input style={inputStyle} placeholder="e.g. Schreiner's" value={breeder} onChange={e => setBreeder(e.target.value)} />
+      </div>
+      <div>
+        <label style={labelStyle}>YEAR OF RELEASE</label>
+        <div style={{ position: 'relative' }}>
+          <select style={selectStyle} value={yearReleased} onChange={e => setYearReleased(e.target.value)}>
+            <option value="">— Select year —</option>
+            {RELEASE_YEARS.map(y => (<option key={y} value={y}>{y}</option>))}
+          </select>
+          <Icon name="chevron" size={16} stroke="var(--ink-3)" style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%) rotate(90deg)', pointerEvents: 'none' }} />
+        </div>
+      </div>
+    </>
+  )
+
+  // ── Flower colour (variety only) ──
+  const colourFields = (
+    <>
+      {[
+        { label: 'STANDARDS', value: colorStandards, set: setColorStandards, ph: 'e.g. Deep blue-violet, velvety substance' },
+        { label: 'FALLS', value: colorFalls, set: setColorFalls, ph: 'e.g. Near-black violet, blue undertone' },
+        { label: 'BEARD', value: colorBeard, set: setColorBeard, ph: 'e.g. Yellow at throat, tipped violet' },
+        { label: 'STYLE ARMS', value: colorStyleArms, set: setColorStyleArms, ph: 'e.g. Violet, crested midrib' },
+      ].map(f => (
+        <div key={f.label}>
+          <label style={labelStyle}>{f.label}</label>
+          <input style={inputStyle} placeholder={f.ph} value={f.value} onChange={e => f.set(e.target.value)} />
+        </div>
+      ))}
+    </>
+  )
+
+  // ── Other (variety only): height, flowering period, fragrance ──
+  const otherFields = (
+    <>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ flex: 1 }}>
+          {/* Stored in cm; a future Settings option will let users switch to inches */}
+          <label style={labelStyle}>HEIGHT (CM)</label>
+          <input style={inputStyle} type="number" inputMode="numeric" placeholder="e.g. 95" value={height} onChange={e => setHeight(e.target.value)} min="0" max="250" />
+        </div>
+        <div style={{ flex: 1 }}>
+          <label style={labelStyle}>FLOWERING PERIOD</label>
+          <div style={{ position: 'relative' }}>
+            <select style={selectStyle} value={floweringPeriod} onChange={e => setFloweringPeriod(e.target.value)}>
+              <option value="">— Select —</option>
+              {['Early', 'Mid', 'Late'].map(o => (<option key={o} value={o}>{o}</option>))}
+            </select>
+            <Icon name="chevron" size={16} stroke="var(--ink-3)" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%) rotate(90deg)', pointerEvents: 'none' }} />
           </div>
         </div>
-      )}
-    </div>
-  ) : null
+      </div>
+      <div>
+        <label style={labelStyle}>FRAGRANCE</label>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ position: 'relative', flex: 1 }}>
+            <select style={selectStyle} value={fragranceLevel} onChange={e => setFragranceLevel(e.target.value)}>
+              <option value="">— Strength —</option>
+              {FRAGRANCE_LEVELS.map(o => (<option key={o} value={o}>{o}</option>))}
+            </select>
+            <Icon name="chevron" size={16} stroke="var(--ink-3)" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%) rotate(90deg)', pointerEvents: 'none' }} />
+          </div>
+          <div style={{ position: 'relative', flex: 1 }}>
+            <select style={selectStyle} value={fragranceType} onChange={e => setFragranceType(e.target.value)}>
+              <option value="">— Character —</option>
+              {FRAGRANCE_TYPES.map(o => (<option key={o} value={o}>{o}</option>))}
+            </select>
+            <Icon name="chevron" size={16} stroke="var(--ink-3)" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%) rotate(90deg)', pointerEvents: 'none' }} />
+          </div>
+        </div>
+      </div>
+    </>
+  )
 
   const parentFields = (
     <>
@@ -372,6 +371,8 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross }: AddIrisFlow
     </div>
   )
 
+  const isVariety = kind === 'Variety'
+
   // ── Single screen (mobile bottom sheet + desktop modal) ──
   return (
     <Sheet open={open} onClose={handleClose} title="Add Iris">
@@ -379,15 +380,32 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross }: AddIrisFlow
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {basicFields}
         </div>
+
+        {isVariety && (
+          <>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <SectionTitle>Breeder history</SectionTitle>
+              {breederFields}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <SectionTitle>Flower colour</SectionTitle>
+              {colourFields}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <SectionTitle>Other</SectionTitle>
+              {otherFields}
+            </div>
+          </>
+        )}
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <SectionLabel>Parentage</SectionLabel>
+          <SectionTitle>Parentage</SectionTitle>
           {parentFields}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <SectionLabel>Location &amp; notes</SectionLabel>
+          <SectionTitle>Location &amp; Notes</SectionTitle>
           {locationFields}
         </div>
-        {advancedSection}
         {saveButton}
       </div>
     </Sheet>
