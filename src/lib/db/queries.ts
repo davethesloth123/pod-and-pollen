@@ -96,6 +96,8 @@ export function dbToIris(row: any): Iris {
     bed: row.grid_ref ?? undefined,
     gridRef: row.grid_ref ?? undefined,
     source: row.source ?? undefined,
+    breeder: row.breeder ?? undefined,
+    yearReleased: row.year_released ?? undefined,
     planted: row.planted_date ?? undefined,
     firstEverFlower: row.first_ever_flower ?? undefined,
     podParent: row.pod_parent ?? undefined,
@@ -118,9 +120,13 @@ export interface NewIris {
   colorType?: string
   status?: string
   locationId?: string | null
+  gridRef?: string
   plantedDate?: string
   podParent?: string
   pollenParent?: string
+  fragrance?: string
+  breeder?: string
+  yearReleased?: number
   colorStandards?: string
   colorFalls?: string
   colorBeard?: string
@@ -149,9 +155,13 @@ export async function insertIris(supabase: SupabaseClient, userId: string, input
       color_type: input.colorType || null,
       status: input.status || 'Growing',
       location_id: input.locationId || null,
+      grid_ref: input.gridRef || null,
       planted_date: input.plantedDate || null,
       pod_parent: input.podParent || null,
       pollen_parent: input.pollenParent || null,
+      fragrance: input.fragrance || null,
+      breeder: input.breeder || null,
+      year_released: input.yearReleased ?? null,
       color_standards: input.colorStandards || null,
       color_falls: input.colorFalls || null,
       color_beard: input.colorBeard || null,

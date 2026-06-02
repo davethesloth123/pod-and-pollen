@@ -77,6 +77,8 @@ export interface Iris {
 
   // Provenance
   source?: string
+  breeder?: string
+  yearReleased?: number
   planted?: string
   firstFlower?: string
   firstEverFlower?: string
