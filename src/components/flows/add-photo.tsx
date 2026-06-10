@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { Icon } from '@/components/ui/icon'
 import { Sheet, btnReset, SectionLabel } from '@/components/ui/shared'
-import { irises } from '@/lib/data'
+import { useData } from '@/lib/data-context'
 import type { Iris } from '@/types'
 
 interface AddPhotoFlowProps {
@@ -37,6 +37,7 @@ const labelStyle: React.CSSProperties = {
 }
 
 export function AddPhotoFlow({ open, iris, onClose, onSaved }: AddPhotoFlowProps) {
+  const { irises } = useData()
   const [category, setCategory] = useState('Standards')
   const [caption, setCaption] = useState('')
   const [selectedIris, setSelectedIris] = useState<string>(iris?.name || '')

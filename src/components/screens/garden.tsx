@@ -3,7 +3,7 @@ import { useState, useRef } from 'react'
 import { Icon } from '@/components/ui/icon'
 import { IrisThumb, IrisCard, SectionLabel, Chip, Segmented, btnReset, EmptyState } from '@/components/ui/shared'
 import { IrisBloom } from '@/components/ui/iris-bloom'
-import { crosses, crossesList, crossStats, byId, PAL, STATUS } from '@/lib/data'
+import { PAL, STATUS } from '@/lib/data'
 import { useData } from '@/lib/data-context'
 import type { Iris } from '@/types'
 
