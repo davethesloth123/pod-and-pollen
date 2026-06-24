@@ -159,3 +159,13 @@ export function latestEval(iris: Iris): import('@/types').EvalRecord | undefined
   if (!iris.evaluations?.length) return undefined
   return iris.evaluations[iris.evaluations.length - 1]
 }
+
+// Resolve a cross's CURRENT parent names from its ids (falls back to the
+// stored names for legacy/free-typed parents). Keeps displays fresh after renames.
+export function liveParentNames(
+  cross: { pod: string; pollen: string; podId?: string; pollenId?: string },
+  irises: { id: string; name: string }[],
+): { pod: string; pollen: string } {
+  const nameOf = (id?: string) => (id ? irises.find(i => i.id === id)?.name : undefined)
+  return { pod: nameOf(cross.podId) ?? cross.pod, pollen: nameOf(cross.pollenId) ?? cross.pollen }
+}

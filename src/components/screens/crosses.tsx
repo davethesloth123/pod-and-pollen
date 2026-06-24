@@ -56,8 +56,8 @@ function ThumbPair({ podIris, polIris }: { podIris?: Iris; polIris?: Iris }) {
 // ── Cross card ────────────────────────────────────────────────
 function CrossCard({ cross, go }: { cross: Cross; go: (screen: string, params?: Record<string, unknown>) => void }) {
   const { irises, crossStats } = useData()
-  const podIris = irises.find(i => i.name === cross.pod)
-  const polIris = irises.find(i => i.name === cross.pollen)
+  const podIris = irises.find(i => i.id === cross.podId) ?? irises.find(i => i.name === cross.pod)
+  const polIris = irises.find(i => i.id === cross.pollenId) ?? irises.find(i => i.name === cross.pollen)
   const s = crossStats(cross.id)
   return (
     <button onClick={() => go('crossDetail', { id: cross.id })} style={{ ...btnReset, cursor: 'pointer', width: '100%', textAlign: 'left' }}>
@@ -81,7 +81,7 @@ function CrossCard({ cross, go }: { cross: Cross; go: (screen: string, params?: 
               fontSize: 13, color: 'var(--ink-3)', marginBottom: 6,
               whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
             }}>
-              {cross.pod} × {cross.pollen}
+              {podIris?.name ?? cross.pod} × {polIris?.name ?? cross.pollen}
             </div>
             {cross.goal && (
               <div style={{
@@ -234,7 +234,7 @@ export function CrossDetailScreen({ id, go, wide, openAddSeedlings }: {
   wide?: boolean
   openAddSeedlings?: (cross: Cross) => void
 }) {
-  const { crosses, irises, crossStats } = useData()
+  const { crosses, irises, crossStats } = useData() // CrossDetailScreen
   const cross = crosses.find(c => c.id === id)
 
   if (!cross) {
@@ -245,8 +245,8 @@ export function CrossDetailScreen({ id, go, wide, openAddSeedlings }: {
     )
   }
 
-  const podIris = irises.find(i => i.name === cross.pod)
-  const polIris = irises.find(i => i.name === cross.pollen)
+  const podIris = irises.find(i => i.id === cross.podId) ?? irises.find(i => i.name === cross.pod)
+  const polIris = irises.find(i => i.id === cross.pollenId) ?? irises.find(i => i.name === cross.pollen)
   const s = crossStats(cross.id)
   const seedlings = irises.filter(i => i.crossId === cross.id || i.cross === cross.id)
 
@@ -298,7 +298,7 @@ export function CrossDetailScreen({ id, go, wide, openAddSeedlings }: {
               padding: '24px 12px 10px',
             }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.75)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 2 }}>Pod parent</div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', lineHeight: 1.2 }}>{cross.pod}</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', lineHeight: 1.2 }}>{podIris?.name ?? cross.pod}</div>
             </div>
           </div>
 
@@ -325,7 +325,7 @@ export function CrossDetailScreen({ id, go, wide, openAddSeedlings }: {
               padding: '24px 12px 10px',
             }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.75)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 2 }}>Pollen parent</div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', lineHeight: 1.2 }}>{cross.pollen}</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', lineHeight: 1.2 }}>{polIris?.name ?? cross.pollen}</div>
             </div>
           </div>
         </div>

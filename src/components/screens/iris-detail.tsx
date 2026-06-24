@@ -72,6 +72,8 @@ function ParentChip({
   const { irises } = useData()
   if (!name || name === 'Unknown') return null
   const parent = (id ? irises.find((i) => i.id === id) : undefined) ?? irises.find((i) => i.name === name)
+  // Prefer the parent's *current* name (id is the source of truth); fall back to the stored name
+  const displayName = parent?.name ?? name
   return (
     <button
       onClick={() => parent && go('detail', { id: parent.id })}
@@ -100,7 +102,7 @@ function ParentChip({
       <span style={{ color: 'var(--ink-3)', fontSize: 12, fontWeight: 600, letterSpacing: 0.2, textTransform: 'uppercase' }}>
         {role}:
       </span>
-      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
+      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</span>
       {parent && (
         <Icon name="chevron" size={13} stroke="var(--accent)" sw={2} />
       )}
@@ -569,6 +571,9 @@ function SeedlingsStrip({
 
 // ─── Crosses strip ────────────────────────────────────────────
 function CrossRow({ cross, go }: { cross: import('@/types').Cross; go: (view: string | number, params?: Record<string, any>) => void }) {
+  const { irises } = useData()
+  const podName = (irises.find(i => i.id === cross.podId) ?? irises.find(i => i.name === cross.pod))?.name ?? cross.pod
+  const polName = (irises.find(i => i.id === cross.pollenId) ?? irises.find(i => i.name === cross.pollen))?.name ?? cross.pollen
   return (
     <button onClick={() => go('crossDetail', { id: cross.id })} style={{ ...btnReset, cursor: 'pointer', width: '100%', textAlign: 'left' }}>
       <div style={{ padding: '11px 13px', background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -577,7 +582,7 @@ function CrossRow({ cross, go }: { cross: import('@/types').Cross; go: (view: st
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--accent)', letterSpacing: 0.2 }}>{cross.code}</div>
-          <div style={{ fontSize: 13, color: 'var(--ink-3)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cross.pod} × {cross.pollen}</div>
+          <div style={{ fontSize: 13, color: 'var(--ink-3)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{podName} × {polName}</div>
         </div>
         <div style={{ fontSize: 12, color: 'var(--ink-4)', flexShrink: 0 }}>{cross.season}</div>
         <Icon name="chevron" size={16} stroke="var(--ink-4)" />
