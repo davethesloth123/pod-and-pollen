@@ -14,6 +14,7 @@ import {
   deleteNote as dbDeleteNote,
   fetchSeedBatches, saveSeedBatch as dbSaveSeedBatch, type SeedBatchPatch,
   insertSeedlings, type NewSeedling,
+  updateCrossParents as dbUpdateCrossParents,
 } from '@/lib/db/queries'
 
 export interface RecentActivity { irisId: string; irisName: string; d: string; t: string; x: string; ts: string }
@@ -60,7 +61,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [notes, setNotes] = useState<IrisNoteRow[]>([])
   const [flowering, setFlowering] = useState<FloweringRow[]>([])
   const [evals, setEvals] = useState<EvalRow[]>([])
-  const [crosses, setCrosses] = useState<Cross[]>([])
+  const [rawCrosses, setRawCrosses] = useState<Cross[]>([])
   const [seedBatches, setSeedBatches] = useState<SeedBatch[]>([])
   const [units, setUnitsState] = useState<Units>('cm')
   const [userId, setUserId] = useState<string | null>(null)
@@ -94,7 +95,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setNotes(ns)
       setFlowering(fl)
       setEvals(ev)
-      setCrosses(xs)
+      setRawCrosses(xs)
       setSeedBatches(sb)
     } catch (e) {
       console.error('Failed to load data', e)
@@ -114,13 +115,31 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const nMap = groupByIris(notes)
     const fMap = groupByIris(flowering)
     const eMap = groupByIris(evals)
+    // name → id index for self-healing parent links whose id was never captured
+    const idByName = new Map<string, string>()
+    for (const i of rawIrises) { if (!idByName.has(i.name)) idByName.set(i.name, i.id) }
+    const heal = (id: string | undefined, name: string | undefined) =>
+      id ?? (name ? idByName.get(name) : undefined)
     return rawIrises.map(i => ({
       ...i,
+      podParentId: heal(i.podParentId, i.podParent),
+      pollenParentId: heal(i.pollenParentId, i.pollenParent),
       notes: nMap.get(i.id) ?? [],
       floweringHistory: (fMap.get(i.id) ?? []).slice().sort((a, b) => b.year - a.year),
       evaluations: eMap.get(i.id) ?? [],
     }))
   }, [rawIrises, notes, flowering, evals])
+
+  // Crosses with self-healed parent id links (id is source of truth; fall back to name match)
+  const crosses = useMemo<Cross[]>(() => {
+    const idByName = new Map<string, string>()
+    for (const i of rawIrises) { if (!idByName.has(i.name)) idByName.set(i.name, i.id) }
+    return rawCrosses.map(c => ({
+      ...c,
+      podId: c.podId ?? (c.pod ? idByName.get(c.pod) : undefined),
+      pollenId: c.pollenId ?? (c.pollen ? idByName.get(c.pollen) : undefined),
+    }))
+  }, [rawCrosses, rawIrises])
 
   // Locations with live plant counts (O(n))
   const locations = useMemo<Location[]>(() => {
@@ -191,7 +210,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const addCross = useCallback(async (input: NewCross) => {
     const user = await requireUser()
     const cross = await insertCross(supabase, user.id, input)
-    setCrosses(prev => [cross, ...prev])
+    setRawCrosses(prev => [cross, ...prev])
   }, [supabase, requireUser])
 
   const seedBatchFor = useCallback((crossId: string) => seedBatches.find(b => b.cross === crossId), [seedBatches])
@@ -213,9 +232,45 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const updateIris = useCallback(async (id: string, patch: IrisPatch) => {
     const user = await requireUser()
+    const prevIris = rawIrises.find(i => i.id === id)
+    const oldName = prevIris?.name
     const updated = await dbUpdateIris(supabase, user.id, id, patch)
     setRawIrises(prev => prev.map(i => i.id === id ? updated : i))
-  }, [supabase, requireUser])
+
+    // Rename cascade: keep children's denormalized parent names in sync and (re)link by id.
+    // Matches children by id link OR by the old name (heals records whose id was never stored).
+    const newName = patch.name?.trim()
+    if (newName && oldName && newName !== oldName) {
+      const matches = (linkId?: string, linkName?: string) =>
+        linkId === id || (!linkId && linkName === oldName)
+
+      // Child irises / seedlings
+      const childIris = rawIrises.filter(i => i.id !== id && (
+        matches(i.podParentId, i.podParent) || matches(i.pollenParentId, i.pollenParent)))
+      for (const c of childIris) {
+        const p: IrisPatch = {}
+        if (matches(c.podParentId, c.podParent)) { p.podParent = newName; p.podParentId = id }
+        if (matches(c.pollenParentId, c.pollenParent)) { p.pollenParent = newName; p.pollenParentId = id }
+        try {
+          const u = await dbUpdateIris(supabase, user.id, c.id, p)
+          setRawIrises(prev => prev.map(i => i.id === c.id ? u : i))
+        } catch (e) { console.error('rename cascade (iris)', e) }
+      }
+
+      // Crosses referencing this parent
+      const childCross = rawCrosses.filter(x =>
+        matches(x.podId, x.pod) || matches(x.pollenId, x.pollen))
+      for (const x of childCross) {
+        const cp: { pod?: string; podId?: string | null; pollen?: string; pollenId?: string | null } = {}
+        if (matches(x.podId, x.pod)) { cp.pod = newName; cp.podId = id }
+        if (matches(x.pollenId, x.pollen)) { cp.pollen = newName; cp.pollenId = id }
+        try {
+          const u = await dbUpdateCrossParents(supabase, user.id, x.id, cp)
+          setRawCrosses(prev => prev.map(c => c.id === x.id ? u : c))
+        } catch (e) { console.error('rename cascade (cross)', e) }
+      }
+    }
+  }, [supabase, requireUser, rawIrises, rawCrosses])
 
   const deleteIris = useCallback(async (id: string) => {
     const user = await requireUser()

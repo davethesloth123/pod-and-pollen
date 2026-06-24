@@ -543,6 +543,20 @@ export async function deleteIris(supabase: SupabaseClient, userId: string, id: s
   if (error) throw error
 }
 
+// Patch a cross's denormalized parent name + id link (used by rename cascade)
+export interface CrossParentPatch { pod?: string; podId?: string | null; pollen?: string; pollenId?: string | null }
+export async function updateCrossParents(supabase: SupabaseClient, userId: string, id: string, patch: CrossParentPatch): Promise<Cross> {
+  const col: Record<string, unknown> = {}
+  if (patch.pod !== undefined) col.pod_parent = patch.pod || null
+  if (patch.podId !== undefined) col.pod_parent_id = patch.podId || null
+  if (patch.pollen !== undefined) col.pollen_parent = patch.pollen || null
+  if (patch.pollenId !== undefined) col.pollen_parent_id = patch.pollenId || null
+  const { data, error } = await supabase
+    .from('crosses').update(col).eq('id', id).eq('user_id', userId).select('*').single()
+  if (error) throw error
+  return dbToCross(data)
+}
+
 export interface LocationPatch {
   name?: string; shortName?: string; kind?: string; sun?: string; soil?: string
   x?: number; y?: number; w?: number; h?: number; shape?: string
