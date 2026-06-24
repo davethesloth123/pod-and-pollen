@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { Icon } from '@/components/ui/icon'
-import { Sheet, btnReset, SectionLabel } from '@/components/ui/shared'
+import { Sheet, btnReset, SectionLabel, inputStyle, labelStyle } from '@/components/ui/shared'
 import { useData } from '@/lib/data-context'
 import type { Iris } from '@/types'
 
@@ -13,28 +13,6 @@ interface AddPhotoFlowProps {
 }
 
 const CATEGORIES = ['Standards', 'Falls', 'Habit', 'Setting', 'Detail', 'Other']
-
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '14px',
-  borderRadius: 12,
-  border: '1px solid var(--line-2)',
-  background: 'var(--surface)',
-  fontSize: 15.5,
-  color: 'var(--ink)',
-  fontFamily: 'Lexend, sans-serif',
-  outline: 'none',
-  boxSizing: 'border-box',
-}
-
-const labelStyle: React.CSSProperties = {
-  fontSize: 12.5,
-  fontWeight: 600,
-  color: 'var(--ink-3)',
-  letterSpacing: 0.3,
-  marginBottom: 6,
-  display: 'block',
-}
 
 export function AddPhotoFlow({ open, iris, onClose, onSaved }: AddPhotoFlowProps) {
   const { irises } = useData()

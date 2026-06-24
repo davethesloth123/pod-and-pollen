@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { Icon } from '@/components/ui/icon'
-import { Sheet, btnReset } from '@/components/ui/shared'
+import { Sheet, btnReset, inputStyle, selectStyle, labelStyle } from '@/components/ui/shared'
 import { useData } from '@/lib/data-context'
 import type { Iris } from '@/types'
 
@@ -45,34 +45,6 @@ const COLOUR_TYPES = [
   'Line and Speckles',
   'Space Age',
 ]
-
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '14px',
-  borderRadius: 12,
-  border: '1px solid var(--line-2)',
-  background: 'var(--surface)',
-  fontSize: 15.5,
-  color: 'var(--ink)',
-  fontFamily: 'Lexend, sans-serif',
-  outline: 'none',
-  boxSizing: 'border-box',
-}
-
-const selectStyle: React.CSSProperties = {
-  ...inputStyle,
-  appearance: 'none',
-  cursor: 'pointer',
-}
-
-const labelStyle: React.CSSProperties = {
-  fontSize: 12.5,
-  fontWeight: 600,
-  color: 'var(--ink-3)',
-  letterSpacing: 0.3,
-  marginBottom: 6,
-  display: 'block',
-}
 
 const CM_PER_IN = 2.54
 export function AddIrisFlow({ open, onClose, onSaved, presetCross, editIris }: AddIrisFlowProps) {

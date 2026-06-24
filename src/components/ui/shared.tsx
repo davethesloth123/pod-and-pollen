@@ -14,6 +14,17 @@ export const iconBtn: React.CSSProperties = {
   background: 'var(--surface)', border: '1px solid var(--line)',
 }
 
+// ── Shared form-field styles ─────────────────────────────────
+export const inputStyle: React.CSSProperties = {
+  width: '100%', padding: '14px', borderRadius: 12, border: '1px solid var(--line-2)',
+  background: 'var(--surface)', fontSize: 15.5, color: 'var(--ink)', fontFamily: 'Lexend, sans-serif',
+  outline: 'none', boxSizing: 'border-box',
+}
+export const selectStyle: React.CSSProperties = { ...inputStyle, appearance: 'none', cursor: 'pointer' }
+export const labelStyle: React.CSSProperties = {
+  fontSize: 12.5, fontWeight: 600, color: 'var(--ink-3)', letterSpacing: 0.3, marginBottom: 6, display: 'block',
+}
+
 // ── Wordmark ─────────────────────────────────────────────────
 export function Wordmark({ size = 22, plant = 'iris' }: { size?: number; plant?: string }) {
   return (
