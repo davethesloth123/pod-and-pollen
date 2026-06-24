@@ -275,38 +275,34 @@ export function AppShell() {
 
   // ── Bootstrap ────────────────────────────────────────────────
   useEffect(() => {
-    // Load user
     supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user ?? null)
-    })
-
-    // Widget persistence
-    try {
-      const stored = localStorage.getItem('bl_widgets')
-      if (stored) {
-        const parsed = JSON.parse(stored)
-        if (Array.isArray(parsed) && parsed.length > 0) setWidgets(parsed)
+      const u = data.user ?? null
+      setUser(u)
+      if (!u) return
+      // Per-user widget set
+      try {
+        const stored = localStorage.getItem(`bl_widgets_${u.id}`)
+        if (stored) {
+          const parsed = JSON.parse(stored)
+          if (Array.isArray(parsed) && parsed.length > 0) setWidgets(parsed)
+        }
+      } catch {
+        // ignore parse errors
       }
-    } catch {
-      // ignore parse errors
-    }
-
-    // Onboarding check
-    const onboarded = localStorage.getItem('bl_onboarded')
-    if (!onboarded) {
-      // Show onboarding (no iris check for now — just check the flag)
-      setOnboardingDone(false)
-    }
+      // Per-user onboarding flag
+      if (!localStorage.getItem(`bl_onboarded_${u.id}`)) setOnboardingDone(false)
+    })
   }, [])
 
-  // Persist widgets on change
+  // Persist widgets per user
   useEffect(() => {
+    if (!user?.id) return
     try {
-      localStorage.setItem('bl_widgets', JSON.stringify(widgets))
+      localStorage.setItem(`bl_widgets_${user.id}`, JSON.stringify(widgets))
     } catch {
       // ignore
     }
-  }, [widgets])
+  }, [widgets, user])
 
   // ── Navigation ───────────────────────────────────────────────
   const onTab = (k: string) => {
@@ -348,7 +344,7 @@ export function AppShell() {
 
   // ── Onboarding complete ──────────────────────────────────────
   const handleOnboardingComplete = (recommendedWidgets?: string[]) => {
-    localStorage.setItem('bl_onboarded', '1')
+    if (user?.id) localStorage.setItem(`bl_onboarded_${user.id}`, '1')
     setOnboardingDone(true)
     if (recommendedWidgets && recommendedWidgets.length > 0) {
       setWidgets(recommendedWidgets)

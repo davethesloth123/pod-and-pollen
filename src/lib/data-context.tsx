@@ -22,6 +22,7 @@ export type Units = 'cm' | 'in'
 
 interface DataContextValue {
   ready: boolean
+  userId: string | null
   locations: Location[]
   irises: Iris[]
   crosses: Cross[]
@@ -62,18 +63,22 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [crosses, setCrosses] = useState<Cross[]>([])
   const [seedBatches, setSeedBatches] = useState<SeedBatch[]>([])
   const [units, setUnitsState] = useState<Units>('cm')
+  const [userId, setUserId] = useState<string | null>(null)
 
+  // Per-user units preference
   useEffect(() => {
-    try { const u = localStorage.getItem('bl_units'); if (u === 'cm' || u === 'in') setUnitsState(u) } catch { /* ignore */ }
-  }, [])
+    if (!userId) return
+    try { const u = localStorage.getItem(`bl_units_${userId}`); if (u === 'cm' || u === 'in') setUnitsState(u) } catch { /* ignore */ }
+  }, [userId])
   const setUnits = useCallback((u: Units) => {
     setUnitsState(u)
-    try { localStorage.setItem('bl_units', u) } catch { /* ignore */ }
-  }, [])
+    try { if (userId) localStorage.setItem(`bl_units_${userId}`, u) } catch { /* ignore */ }
+  }, [userId])
 
   const load = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setReady(true); return }
+    setUserId(user.id)
     try {
       const [locs, iris, ns, fl, ev, xs, sb] = await Promise.all([
         fetchLocations(supabase, user.id),
@@ -99,19 +104,30 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => { load() }, [load])
 
-  // Irises with their related notes / flowering / evaluations attached
-  const irises = useMemo<Iris[]>(() => rawIrises.map(i => ({
-    ...i,
-    notes: notes.filter(n => n.irisId === i.id),
-    floweringHistory: flowering.filter(f => f.irisId === i.id).sort((a, b) => b.year - a.year),
-    evaluations: evals.filter(e => e.irisId === i.id),
-  })), [rawIrises, notes, flowering, evals])
+  // Irises with their related notes / flowering / evaluations attached (O(n) via maps)
+  const irises = useMemo<Iris[]>(() => {
+    const groupByIris = <T extends { irisId: string }>(rows: T[]): Map<string, T[]> => {
+      const m = new Map<string, T[]>()
+      for (const r of rows) { const a = m.get(r.irisId); if (a) a.push(r); else m.set(r.irisId, [r]) }
+      return m
+    }
+    const nMap = groupByIris(notes)
+    const fMap = groupByIris(flowering)
+    const eMap = groupByIris(evals)
+    return rawIrises.map(i => ({
+      ...i,
+      notes: nMap.get(i.id) ?? [],
+      floweringHistory: (fMap.get(i.id) ?? []).slice().sort((a, b) => b.year - a.year),
+      evaluations: eMap.get(i.id) ?? [],
+    }))
+  }, [rawIrises, notes, flowering, evals])
 
-  // Locations with live plant counts
-  const locations = useMemo<Location[]>(
-    () => rawLocations.map(l => ({ ...l, count: rawIrises.filter(i => i.locationId === l.id).length })),
-    [rawLocations, rawIrises],
-  )
+  // Locations with live plant counts (O(n))
+  const locations = useMemo<Location[]>(() => {
+    const counts = new Map<string, number>()
+    for (const i of rawIrises) { if (i.locationId) counts.set(i.locationId, (counts.get(i.locationId) ?? 0) + 1) }
+    return rawLocations.map(l => ({ ...l, count: counts.get(l.id) ?? 0 }))
+  }, [rawLocations, rawIrises])
 
   // Recent activity feed (latest notes across all irises)
   const recent = useMemo<RecentActivity[]>(() => {
@@ -261,12 +277,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }, [rawIrises])
 
   const value = useMemo<DataContextValue>(() => ({
-    ready, locations, irises, crosses, recent, units, setUnits, byId, crossStats,
+    ready, userId, locations, irises, crosses, recent, units, setUnits, byId, crossStats,
     addLocation, addIris, addNote, addFlowering, addEvaluation, addCross,
     seedBatchFor, saveSeedBatch, addSeedlings,
     updateIris, deleteIris, setStatus, toggleFav, updateLocation, deleteLocation, deleteNote,
     refresh: load,
-  }), [ready, locations, irises, crosses, recent, units, setUnits, byId, crossStats,
+  }), [ready, userId, locations, irises, crosses, recent, units, setUnits, byId, crossStats,
     addLocation, addIris, addNote, addFlowering, addEvaluation, addCross,
     seedBatchFor, saveSeedBatch, addSeedlings,
     updateIris, deleteIris, setStatus, toggleFav, updateLocation, deleteLocation, deleteNote, load])
