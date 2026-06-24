@@ -485,9 +485,11 @@ function SeedlingsStrip({
   go: (view: string | number, params?: Record<string, any>) => void
 }) {
   const { irises } = useData()
+  // Any offspring (variety or seedling) that lists this plant as a pod or pollen parent.
+  // Parent ids are self-healed at load, so the id checks catch name-only links too.
   const seedlings = irises.filter(
     (i) =>
-      i.kind === 'Seedling' &&
+      i.id !== iris.id &&
       (i.podParentId === iris.id || i.pollenParentId === iris.id ||
         ((!i.podParentId && i.podParent === iris.name) || (!i.pollenParentId && i.pollenParent === iris.name))),
   )
@@ -495,7 +497,7 @@ function SeedlingsStrip({
 
   return (
     <div style={{ margin: '22px 18px 0' }}>
-      <SectionLabel>{seedlings.length} seedling{seedlings.length !== 1 ? 's' : ''} from this plant</SectionLabel>
+      <SectionLabel>{seedlings.length} {seedlings.length === 1 ? 'child' : 'children'} from this plant</SectionLabel>
       <div
         style={{
           display: 'flex',
