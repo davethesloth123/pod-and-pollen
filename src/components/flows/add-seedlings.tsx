@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { Icon } from '@/components/ui/icon'
-import { Sheet, btnReset, SectionLabel } from '@/components/ui/shared'
+import { Sheet, btnReset, SectionLabel, inputStyle, selectStyle, labelStyle } from '@/components/ui/shared'
 import { useData } from '@/lib/data-context'
 import type { Cross } from '@/types'
 
@@ -13,14 +13,6 @@ interface AddSeedlingsFlowProps {
 }
 
 const CLASSIFICATIONS = ['MDB', 'SDB', 'IB', 'BB', 'MTB', 'TB', 'AB', 'Dutch Iris', 'SPU', 'SIB', 'JA', 'LA', 'Iris reticulata', 'Iris laevigata']
-
-const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '12px 14px', borderRadius: 12, border: '1px solid var(--line-2)',
-  background: 'var(--surface)', fontSize: 15.5, color: 'var(--ink)', fontFamily: 'Lexend, sans-serif',
-  outline: 'none', boxSizing: 'border-box',
-}
-const selectStyle: React.CSSProperties = { ...inputStyle, appearance: 'none', cursor: 'pointer' }
-const labelStyle: React.CSSProperties = { fontSize: 12.5, fontWeight: 600, color: 'var(--ink-3)', letterSpacing: 0.3, marginBottom: 6, display: 'block' }
 
 function defaultName(code: string, i: number): string {
   const letter = i < 26 ? String.fromCharCode(65 + i) : String(i + 1)

@@ -61,6 +61,7 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
+  min-height: 100dvh; /* avoids mobile address-bar height jump where supported */
   font-family: 'Lexend', system-ui, sans-serif;
   background: var(--bg);
   color: var(--ink);
@@ -114,6 +115,7 @@ input, textarea, select { font-family: 'Lexend', system-ui, sans-serif; }
 /* App shell */
 .app-shell {
   min-height: 100vh;
+  min-height: 100dvh; /* avoids mobile address-bar height jump where supported */
   display: flex;
   flex-direction: column;
   max-width: 640px;

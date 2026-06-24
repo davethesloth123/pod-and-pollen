@@ -3,7 +3,7 @@ import { Icon } from '@/components/ui/icon'
 
 export function AuthBg({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ position: 'relative', minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div style={{ position: 'relative', minHeight: '100dvh', background: 'var(--bg)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div style={{ position: 'absolute', top: -60, right: -70, opacity: 0.05, pointerEvents: 'none', transform: 'rotate(14deg)' }}>
         <Icon name="iris" size={320} stroke="var(--accent)" sw={0.8} />
       </div>

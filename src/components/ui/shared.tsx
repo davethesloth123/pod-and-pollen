@@ -1,4 +1,5 @@
 'use client'
+import { useEffect } from 'react'
 import { Icon } from './icon'
 import { IrisBloom } from './iris-bloom'
 import { PAL } from '@/lib/data'
@@ -232,6 +233,15 @@ export function Sheet({ open, onClose, children, title, height = 'auto' }: {
   open: boolean; onClose: () => void; children: React.ReactNode; title?: string; height?: string | number
 }) {
   const isDesktop = useIsDesktop()
+
+  // Close on Escape while open
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open, onClose])
+
   if (!open) return null
 
   // Desktop: centred modal dialog. Mobile: bottom sheet.

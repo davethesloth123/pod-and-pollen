@@ -11,7 +11,7 @@ export default function AuthPage() {
   const [view, setView] = useState<AuthView>('welcome')
 
   return (
-    <div style={{ position: 'relative', minHeight: '100vh', overflow: 'hidden', background: 'var(--bg)' }}>
+    <div style={{ position: 'relative', minHeight: '100dvh', overflow: 'hidden', background: 'var(--bg)' }}>
       {view === 'welcome' && (
         <AuthWelcome
           onSignUp={() => setView('signup')}

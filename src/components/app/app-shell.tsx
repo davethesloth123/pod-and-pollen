@@ -268,10 +268,12 @@ export function AppShell() {
   const view = stack.length > 0 ? stack[stack.length - 1].view : tab
   const params = stack.length > 0 ? stack[stack.length - 1].params : {}
 
-  // Always open a screen scrolled to the top
+  // Always open a screen scrolled to the top. Key on the record id too, so
+  // replacing one detail with another at the same stack depth still resets.
+  const frameKey = `${view}:${stack.length}:${params?.id ?? ''}`
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = 0
-  }, [view, stack.length])
+  }, [frameKey])
 
   // ── Bootstrap ────────────────────────────────────────────────
   useEffect(() => {
@@ -628,7 +630,7 @@ export function AppShell() {
 
   // ── Mobile layout (bottom nav) ───────────────────────────────
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+    <div style={{ minHeight: '100dvh', background: 'var(--bg)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
       <ConnectivityBanner />
       {showHeader && <AppHeader tab={tab} user={user} onSettings={() => go('settings')} />}
       {showSettingsHeader && <SettingsHeader onBack={() => go(-1)} />}
