@@ -23,6 +23,7 @@ export type Units = 'cm' | 'in'
 
 interface DataContextValue {
   ready: boolean
+  loadError: boolean
   userId: string | null
   locations: Location[]
   irises: Iris[]
@@ -56,6 +57,7 @@ const DataContext = createContext<DataContextValue | null>(null)
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [supabase] = useState(() => createClient())
   const [ready, setReady] = useState(false)
+  const [loadError, setLoadError] = useState(false)
   const [rawLocations, setRawLocations] = useState<Location[]>([])
   const [rawIrises, setRawIrises] = useState<Iris[]>([])
   const [notes, setNotes] = useState<IrisNoteRow[]>([])
@@ -77,6 +79,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }, [userId])
 
   const load = useCallback(async () => {
+    setLoadError(false)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setReady(true); return }
     setUserId(user.id)
@@ -99,6 +102,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setSeedBatches(sb)
     } catch (e) {
       console.error('Failed to load data', e)
+      setLoadError(true)
     }
     setReady(true)
   }, [supabase])
@@ -159,11 +163,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       .map(n => ({ irisId: n.irisId, irisName: nameById.get(n.irisId) || '', d: n.d, t: n.t, x: n.x, ts: n.ts }))
   }, [notes, rawIrises])
 
+  // Cached current-user accessor — avoids a network getUser() round-trip on every mutation.
+  // Falls back to the auth call only if the id hasn't been resolved yet (e.g. mutation before load).
   const requireUser = useCallback(async () => {
+    if (userId) return { id: userId }
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not signed in')
-    return user
-  }, [supabase])
+    setUserId(user.id)
+    return { id: user.id }
+  }, [supabase, userId])
 
   const addLocation = useCallback(async (input: NewLocation) => {
     const user = await requireUser()
@@ -209,9 +217,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const addCross = useCallback(async (input: NewCross) => {
     const user = await requireUser()
-    const cross = await insertCross(supabase, user.id, input)
+    // Guard against duplicate cross codes within the same season
+    const code = input.code.trim()
+    if (rawCrosses.some(x => x.code.trim().toLowerCase() === code.toLowerCase() && x.season === (input.season ?? ''))) {
+      throw new Error(`Cross code "${code}" already exists for ${input.season || 'this season'}.`)
+    }
+    const cross = await insertCross(supabase, user.id, { ...input, code })
     setRawCrosses(prev => [cross, ...prev])
-  }, [supabase, requireUser])
+  }, [supabase, requireUser, rawCrosses])
 
   const seedBatchFor = useCallback((crossId: string) => seedBatches.find(b => b.cross === crossId), [seedBatches])
 
@@ -332,12 +345,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }, [rawIrises])
 
   const value = useMemo<DataContextValue>(() => ({
-    ready, userId, locations, irises, crosses, recent, units, setUnits, byId, crossStats,
+    ready, loadError, userId, locations, irises, crosses, recent, units, setUnits, byId, crossStats,
     addLocation, addIris, addNote, addFlowering, addEvaluation, addCross,
     seedBatchFor, saveSeedBatch, addSeedlings,
     updateIris, deleteIris, setStatus, toggleFav, updateLocation, deleteLocation, deleteNote,
     refresh: load,
-  }), [ready, userId, locations, irises, crosses, recent, units, setUnits, byId, crossStats,
+  }), [ready, loadError, userId, locations, irises, crosses, recent, units, setUnits, byId, crossStats,
     addLocation, addIris, addNote, addFlowering, addEvaluation, addCross,
     seedBatchFor, saveSeedBatch, addSeedlings,
     updateIris, deleteIris, setStatus, toggleFav, updateLocation, deleteLocation, deleteNote, load])

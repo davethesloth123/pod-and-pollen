@@ -109,7 +109,7 @@ export function RecordPollinationFlow({ open, iris, onClose, onSaved }: RecordPo
       handleClose()
     } catch (e) {
       console.error(e)
-      setError('Could not save. Please try again.')
+      setError(e instanceof Error && e.message ? e.message : 'Could not save. Please try again.')
       setSaving(false)
     }
   }

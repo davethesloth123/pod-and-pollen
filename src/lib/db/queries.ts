@@ -1,7 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Location, Iris, IrisKind, IrisStatus, IrisNote, FloweringRecord, EvalRecord, Cross, SeedBatch } from '@/types'
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import type {
+  LocationRow, IrisRow, NoteRow, FloweringRowDb, EvalRowDb, CrossRow, SeedBatchRow,
+} from '@/lib/db/row-types'
 
 function fmtDate(iso: string): string {
   try {
@@ -12,9 +13,7 @@ function fmtDate(iso: string): string {
 }
 
 // ─── Row → app-shape mappers ──────────────────────────────────
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-export function dbToLocation(row: any): Location {
+export function dbToLocation(row: LocationRow): Location {
   return {
     id: row.id,
     name: row.name,
@@ -70,7 +69,7 @@ export async function insertLocation(supabase: SupabaseClient, userId: string, i
 }
 
 // ─── Irises ───────────────────────────────────────────────────
-export function dbToIris(row: any): Iris {
+export function dbToIris(row: IrisRow): Iris {
   const hasColorDef = row.color_standards || row.color_falls || row.color_beard || row.color_style_arms
   return {
     id: row.id,
@@ -197,7 +196,7 @@ export async function insertIris(supabase: SupabaseClient, userId: string, input
 // ─── Notes ────────────────────────────────────────────────────
 export type IrisNoteRow = IrisNote & { irisId: string; ts: string }
 
-export function dbToNote(row: any): IrisNoteRow {
+export function dbToNote(row: NoteRow): IrisNoteRow {
   return {
     irisId: row.iris_id,
     id: row.id,
@@ -239,7 +238,7 @@ export async function insertNote(supabase: SupabaseClient, userId: string, input
 // ─── Flowering records ────────────────────────────────────────
 export type FloweringRow = FloweringRecord & { irisId: string }
 
-export function dbToFlowering(row: any): FloweringRow {
+export function dbToFlowering(row: FloweringRowDb): FloweringRow {
   return {
     irisId: row.iris_id,
     year: row.year,
@@ -290,7 +289,7 @@ export async function upsertFlowering(supabase: SupabaseClient, userId: string, 
 // ─── Evaluations ──────────────────────────────────────────────
 export type EvalRow = EvalRecord & { irisId: string }
 
-export function dbToEval(row: any): EvalRow {
+export function dbToEval(row: EvalRowDb): EvalRow {
   return {
     irisId: row.iris_id,
     id: row.id,
@@ -346,7 +345,7 @@ export async function insertEvaluation(supabase: SupabaseClient, userId: string,
 }
 
 // ─── Crosses ──────────────────────────────────────────────────
-export function dbToCross(row: any): Cross {
+export function dbToCross(row: CrossRow): Cross {
   return {
     id: row.id,
     code: row.code,
@@ -409,7 +408,7 @@ export async function insertCross(supabase: SupabaseClient, userId: string, inpu
 }
 
 // ─── Seed batches (one per cross) ─────────────────────────────
-export function dbToSeedBatch(row: any): SeedBatch {
+export function dbToSeedBatch(row: SeedBatchRow): SeedBatch {
   return {
     id: row.id,
     cross: row.cross_id,

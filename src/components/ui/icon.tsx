@@ -45,6 +45,8 @@ export function Icon({ name, size = 24, stroke = 'currentColor', sw = 1.8, fill 
     clock: <><circle cx="12" cy="12" r="8.5" {...p} /><path d="M12 7.5V12l3 2" {...p} /></>,
     heart: <><path d="M12 20S4 14.5 4 9a4 4 0 0 1 8-1 4 4 0 0 1 8 1c0 5.5-8 11-8 11Z" {...p} /></>,
     upload: <><path d="M12 16V4M7 9l5-5 5 5" {...p} /><path d="M5 16v3.5h14V16" {...p} /></>,
+    alert: <><path d="M12 8.5v4.5" {...p} /><circle cx="12" cy="16.5" r="0.4" {...p} fill={stroke} /><path d="M10.3 4.5 3.4 16.5a2 2 0 0 0 1.7 3h13.8a2 2 0 0 0 1.7-3L13.7 4.5a2 2 0 0 0-3.4 0Z" {...p} /></>,
+    refresh: <><path d="M20 11a8 8 0 1 0-.7 4.3" {...p} /><path d="M20 5v6h-6" {...p} /></>,
     iris: <>
       <path d="M12 3.2c-1.6 2-2.6 4-2.6 6.4 0 1.4 1 2.2 2.6 2.2s2.6-0.8 2.6-2.2c0-2.4-1-4.4-2.6-6.4Z" {...p} />
       <path d="M12 11.8c-3 0-5.4 2.2-6.4 5 2 1 4.5 0 6.4-2.4" {...p} />

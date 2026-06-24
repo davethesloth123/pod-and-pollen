@@ -1,10 +1,10 @@
-import { AppShell } from '@/components/app/app-shell'
+import { AppGate } from '@/components/app/app-gate'
 import { DataProvider } from '@/lib/data-context'
 
 export default function AppPage() {
   return (
     <DataProvider>
-      <AppShell />
+      <AppGate />
     </DataProvider>
   )
 }
