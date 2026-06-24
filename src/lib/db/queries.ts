@@ -102,6 +102,8 @@ export function dbToIris(row: any): Iris {
     firstEverFlower: row.first_ever_flower ?? undefined,
     podParent: row.pod_parent ?? undefined,
     pollenParent: row.pollen_parent ?? undefined,
+    podParentId: row.pod_parent_id ?? undefined,
+    pollenParentId: row.pollen_parent_id ?? undefined,
     crossId: row.cross_id ?? undefined,
     cross: row.cross_id ?? undefined,
     seedBatch: row.seed_batch_id ?? undefined,
@@ -124,6 +126,8 @@ export interface NewIris {
   plantedDate?: string
   podParent?: string
   pollenParent?: string
+  podParentId?: string | null
+  pollenParentId?: string | null
   height?: number
   season?: string
   fragrance?: string
@@ -161,6 +165,8 @@ export async function insertIris(supabase: SupabaseClient, userId: string, input
       planted_date: input.plantedDate || null,
       pod_parent: input.podParent || null,
       pollen_parent: input.pollenParent || null,
+      pod_parent_id: input.podParentId || null,
+      pollen_parent_id: input.pollenParentId || null,
       height_cm: input.height ?? null,
       season: input.season || null,
       fragrance: input.fragrance || null,
@@ -347,6 +353,8 @@ export function dbToCross(row: any): Cross {
     season: row.season ?? '',
     pod: row.pod_parent ?? '',
     pollen: row.pollen_parent ?? '',
+    podId: row.pod_parent_id ?? undefined,
+    pollenId: row.pollen_parent_id ?? undefined,
     date: row.pollination_date ?? undefined,
     podNo: row.pod_number ?? undefined,
     notes: row.notes ?? undefined,
@@ -468,6 +476,8 @@ export interface NewSeedling {
   status?: string
   podParent?: string
   pollenParent?: string
+  podParentId?: string | null
+  pollenParentId?: string | null
   crossId?: string
 }
 
@@ -483,6 +493,8 @@ export async function insertSeedlings(supabase: SupabaseClient, userId: string, 
     status: r.status || 'Growing',
     pod_parent: r.podParent || null,
     pollen_parent: r.pollenParent || null,
+    pod_parent_id: r.podParentId || null,
+    pollen_parent_id: r.pollenParentId || null,
     cross_id: r.crossId || null,
   }))
   const { data, error } = await supabase.from('irises').insert(payload).select('*, location:locations(name)')
@@ -495,6 +507,7 @@ export interface IrisPatch {
   name?: string; kind?: string; classification?: string; colorType?: string
   status?: string; fav?: boolean; locationId?: string | null; gridRef?: string
   plantedDate?: string; podParent?: string; pollenParent?: string
+  podParentId?: string | null; pollenParentId?: string | null
   height?: number | null; season?: string; fragrance?: string; breeder?: string; yearReleased?: number | null
   colorStandards?: string; colorFalls?: string; colorBeard?: string; colorStyleArms?: string
   firstEverFlower?: string
@@ -504,6 +517,7 @@ const IRIS_COL_MAP: Record<string, string> = {
   name: 'name', kind: 'kind', classification: 'classification', colorType: 'color_type',
   status: 'status', fav: 'fav', locationId: 'location_id', gridRef: 'grid_ref',
   plantedDate: 'planted_date', podParent: 'pod_parent', pollenParent: 'pollen_parent',
+  podParentId: 'pod_parent_id', pollenParentId: 'pollen_parent_id',
   height: 'height_cm', season: 'season', fragrance: 'fragrance', breeder: 'breeder',
   yearReleased: 'year_released', colorStandards: 'color_standards', colorFalls: 'color_falls',
   colorBeard: 'color_beard', colorStyleArms: 'color_style_arms', firstEverFlower: 'first_ever_flower',

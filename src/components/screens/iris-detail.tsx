@@ -61,15 +61,17 @@ function fmtDate(d: string): string {
 function ParentChip({
   role,
   name,
+  id,
   go,
 }: {
   role: string
   name?: string
+  id?: string
   go: (view: string | number, params?: Record<string, any>) => void
 }) {
   const { irises } = useData()
   if (!name || name === 'Unknown') return null
-  const parent = irises.find((i) => i.name === name)
+  const parent = (id ? irises.find((i) => i.id === id) : undefined) ?? irises.find((i) => i.name === name)
   return (
     <button
       onClick={() => parent && go('detail', { id: parent.id })}
@@ -484,7 +486,8 @@ function SeedlingsStrip({
   const seedlings = irises.filter(
     (i) =>
       i.kind === 'Seedling' &&
-      (i.podParent === iris.name || i.pollenParent === iris.name),
+      (i.podParentId === iris.id || i.pollenParentId === iris.id ||
+        ((!i.podParentId && i.podParent === iris.name) || (!i.pollenParentId && i.pollenParent === iris.name))),
   )
   if (seedlings.length === 0) return null
 
@@ -591,8 +594,8 @@ function CrossesSection({
   go: (view: string | number, params?: Record<string, any>) => void
 }) {
   const { crosses } = useData()
-  const asPod = crosses.filter(x => x.pod === iris.name)
-  const asPollen = crosses.filter(x => x.pollen === iris.name)
+  const asPod = crosses.filter(x => x.podId === iris.id || (!x.podId && x.pod === iris.name))
+  const asPollen = crosses.filter(x => x.pollenId === iris.id || (!x.pollenId && x.pollen === iris.name))
   if (asPod.length === 0 && asPollen.length === 0) return null
 
   return (
@@ -903,8 +906,8 @@ export function IrisDetailScreen({
           <div style={{ marginTop: 14 }}>
             <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', color: 'var(--ink-4)', marginBottom: 8 }}>Parentage</div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <ParentChip role="Pod" name={iris.podParent} go={go} />
-              <ParentChip role="Pollen" name={iris.pollenParent} go={go} />
+              <ParentChip role="Pod" name={iris.podParent} id={iris.podParentId} go={go} />
+              <ParentChip role="Pollen" name={iris.pollenParent} id={iris.pollenParentId} go={go} />
             </div>
           </div>
         )}

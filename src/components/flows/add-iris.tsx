@@ -149,6 +149,7 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross, editIris }: A
       const isVariety = kind === 'Variety'
       const fragrance = isVariety ? [fragranceLevel, fragranceType].filter(Boolean).join(' · ') : ''
       const heightCm = height ? (units === 'in' ? Math.round(Number(height) * CM_PER_IN) : Number(height)) : null
+      const parentId = (n: string) => irises.find(i => i.name === n.trim())?.id ?? null
       if (editing && editIris) {
         // Edit: send '' to clear fields; updateIris maps '' → null
         await updateIris(editIris.id, {
@@ -158,6 +159,8 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross, editIris }: A
           colorType: isVariety ? colourType : undefined,
           podParent: podParent.trim(),
           pollenParent: pollenParent.trim(),
+          podParentId: parentId(podParent),
+          pollenParentId: parentId(pollenParent),
           locationId: loc || null,
           gridRef: gridRef.trim(),
           plantedDate: year.trim(),
@@ -179,6 +182,8 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross, editIris }: A
           colorType: isVariety ? colourType : undefined,
           podParent: podParent.trim() || undefined,
           pollenParent: pollenParent.trim() || undefined,
+          podParentId: parentId(podParent) ?? undefined,
+          pollenParentId: parentId(pollenParent) ?? undefined,
           locationId: loc || null,
           gridRef: gridRef.trim() || undefined,
           plantedDate: year.trim() || undefined,

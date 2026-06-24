@@ -30,7 +30,7 @@ function defaultName(code: string, i: number): string {
 interface Row { name: string; locationId: string; gridRef: string }
 
 export function AddSeedlingsFlow({ open, cross, onClose, onSaved }: AddSeedlingsFlowProps) {
-  const { locations, addSeedlings } = useData()
+  const { locations, irises, addSeedlings } = useData()
   const [step, setStep] = useState(0)
   const [count, setCount] = useState(3)
   const [cls, setCls] = useState('TB')
@@ -75,6 +75,8 @@ export function AddSeedlingsFlow({ open, cross, onClose, onSaved }: AddSeedlings
         status: 'Growing',
         podParent: cross?.pod,
         pollenParent: cross?.pollen,
+        podParentId: cross?.podId ?? (cross?.pod ? irises.find(i => i.name === cross.pod)?.id ?? null : null),
+        pollenParentId: cross?.pollenId ?? (cross?.pollen ? irises.find(i => i.name === cross.pollen)?.id ?? null : null),
         crossId: cross?.id,
       }))
       await addSeedlings(payload)

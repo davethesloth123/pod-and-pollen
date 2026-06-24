@@ -86,6 +86,8 @@ export interface Iris {
   // Parentage
   podParent?: string
   pollenParent?: string
+  podParentId?: string
+  pollenParentId?: string
 
   // Cross linkage (seedlings)
   cross?: string         // cross code (e.g. X1)
@@ -121,6 +123,8 @@ export interface Cross {
   season: string
   pod: string
   pollen: string
+  podId?: string
+  pollenId?: string
   date?: string
   podNo?: string
   notes?: string
