@@ -12,6 +12,7 @@ import { CollectionScreen } from '@/components/screens/collection'
 import { IrisDetailScreen } from '@/components/screens/iris-detail'
 import { GardenScreen, GardenDetailScreen } from '@/components/screens/garden'
 import { CrossesScreen, CrossDetailScreen, CompareScreen } from '@/components/screens/crosses'
+import { InFlowerScreen } from '@/components/screens/in-flower'
 import { SearchScreen } from '@/components/screens/search'
 import { SettingsScreen } from '@/components/screens/settings'
 import { CustomizeDashboardScreen } from '@/components/screens/customize'
@@ -474,6 +475,12 @@ export function AppShell() {
       case 'calendar':
         return (
           <CalendarScreen
+            {...commonProps}
+          />
+        )
+      case 'inflower':
+        return (
+          <InFlowerScreen
             {...commonProps}
           />
         )

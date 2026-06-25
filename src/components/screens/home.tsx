@@ -313,18 +313,39 @@ function FavWidget({ go }: { go: (view: string | -1, params?: Record<string, any
 }
 
 function CrossesWidget({ go }: { go: (view: string | -1, params?: Record<string, any>) => void }) {
-  // Live crosses land with the crosses slice.
+  const { crosses } = useData()
+  const list = crosses.slice(0, 6)
   return (
     <div>
       <WidgetHeader
         title="Crosses"
+        count={crosses.length}
         action={
           <button onClick={() => go('crosses')} style={{ ...btnReset, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>
             See all
           </button>
         }
       />
-      <EmptyHint icon="dna" title="No crosses yet" body="Record pollinations to track your breeding programme." />
+      {crosses.length === 0 ? (
+        <EmptyHint icon="dna" title="No crosses yet" body="Record pollinations to track your breeding programme." />
+      ) : (
+        <div style={{ display: 'flex', gap: 10, overflowX: 'auto', scrollbarWidth: 'none', margin: '0 -18px', padding: '2px 18px 6px' }}>
+          {list.map(c => (
+            <button key={c.id} onClick={() => go('crossDetail', { id: c.id })} style={{ ...btnReset, cursor: 'pointer', width: 190, flexShrink: 0, textAlign: 'left' }}>
+              <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--line)', padding: '12px 13px', boxShadow: 'var(--shadow-sm)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <span style={{ width: 32, height: 32, borderRadius: 9, background: 'var(--accent-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Icon name="dna" size={16} stroke="var(--accent)" sw={2} />
+                  </span>
+                  <span style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--accent)', letterSpacing: 0.2 }}>{c.code}</span>
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--ink-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.pod} × {c.pollen}</div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink-4)', marginTop: 3 }}>Season {c.season}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

@@ -22,7 +22,7 @@ interface AddIrisFlowProps {
   editIris?: Iris
 }
 
-const KINDS = ['Variety', 'Seedling']
+const KINDS: { v: string; label: string }[] = [{ v: 'Variety', label: 'Named Variety' }, { v: 'Seedling', label: 'Seedling' }]
 const CLASSIFICATIONS = [
   'MDB', 'SDB', 'IB', 'BB', 'MTB', 'TB', 'AB',
   'Dutch Iris', 'SPU', 'SIB', 'JA', 'LA',
@@ -143,6 +143,9 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross, editIris }: A
 
   async function handleSave() {
     if (saving || !name.trim()) return
+    // Names/numbers must be unique (case-insensitive), excluding the record being edited
+    const dupName = irises.some(i => i.id !== editIris?.id && i.name.trim().toLowerCase() === name.trim().toLowerCase())
+    if (dupName) { setError('Iris name already exists'); return }
     setSaving(true)
     setError('')
     try {
@@ -221,12 +224,12 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross, editIris }: A
         <label style={labelStyle}>RECORD TYPE</label>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {KINDS.map(k => (
-            <button key={k} onClick={() => setKind(k)} style={{
+            <button key={k.v} onClick={() => setKind(k.v)} style={{
               ...btnReset, padding: '9px 16px', borderRadius: 999, fontSize: 14, fontWeight: 500,
-              background: kind === k ? 'var(--ink)' : 'var(--surface)',
-              color: kind === k ? '#fff' : 'var(--ink-2)',
-              border: `1px solid ${kind === k ? 'var(--ink)' : 'var(--line)'}`, cursor: 'pointer', transition: 'all .15s',
-            }}>{k}</button>
+              background: kind === k.v ? 'var(--ink)' : 'var(--surface)',
+              color: kind === k.v ? '#fff' : 'var(--ink-2)',
+              border: `1px solid ${kind === k.v ? 'var(--ink)' : 'var(--line)'}`, cursor: 'pointer', transition: 'all .15s',
+            }}>{k.label}</button>
           ))}
         </div>
       </div>
@@ -254,11 +257,27 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross, editIris }: A
   )
 
   // ── Breeder history (variety only) ──
+  const breederOptions = Array.from(new Set(
+    irises.map(i => i.breeder?.trim()).filter((b): b is string => !!b),
+  )).sort((a, b) => a.localeCompare(b))
+  const breederMatches = breeder.trim()
+    ? breederOptions.filter(b =>
+        b.toLowerCase().includes(breeder.trim().toLowerCase()) &&
+        b.toLowerCase() !== breeder.trim().toLowerCase()).slice(0, 5)
+    : []
   const breederFields = (
     <>
       <div>
         <label style={labelStyle}>BREEDER</label>
         <input style={inputStyle} placeholder="e.g. Schreiner's" value={breeder} onChange={e => setBreeder(e.target.value)} />
+        {breederMatches.length > 0 && (
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 12, marginTop: 4, overflow: 'hidden' }}>
+            {breederMatches.map(b => (
+              <button key={b} onClick={() => setBreeder(b)}
+                style={{ ...btnReset, width: '100%', textAlign: 'left', padding: '11px 14px', fontSize: 15, color: 'var(--ink)', borderBottom: '1px solid var(--line)', cursor: 'pointer' }}>{b}</button>
+            ))}
+          </div>
+        )}
       </div>
       <div>
         <label style={labelStyle}>YEAR OF RELEASE</label>

@@ -16,7 +16,7 @@ interface CollectionScreenProps {
 }
 
 // ─── Filters ─────────────────────────────────────────────────
-const FILTERS = ['All', 'In flower', 'Varieties', 'Seedlings', 'Favourites']
+const FILTERS = ['All', 'In flower', 'Named Varieties', 'Seedlings', 'Favourites']
 
 // ─── Cross filter banner ──────────────────────────────────────
 function CrossBanner({
@@ -105,7 +105,7 @@ export function CollectionScreen({ go, wide, openAdd, params }: CollectionScreen
   let list: Iris[] = irises
   if (crossFilter) list = list.filter((i) => i.cross === crossFilter)
   if (filter === 'In flower') list = list.filter((i) => i.status === 'Flowering' || i.status === 'First flower')
-  else if (filter === 'Varieties') list = list.filter((i) => i.kind === 'Variety')
+  else if (filter === 'Named Varieties') list = list.filter((i) => i.kind === 'Variety')
   else if (filter === 'Seedlings') list = list.filter((i) => i.kind === 'Seedling')
   else if (filter === 'Favourites') list = list.filter((i) => i.fav)
 
