@@ -5,6 +5,7 @@ import { IrisThumb, IrisCard, SectionLabel, Chip, Segmented, btnReset, EmptyStat
 import { IrisBloom } from '@/components/ui/iris-bloom'
 import { PAL } from '@/lib/data'
 import { useData } from '@/lib/data-context'
+import { fmtDate } from '@/lib/format'
 import { SeedBatchCard } from '@/components/screens/seed-batch-card'
 import type { Iris, Cross } from '@/types'
 
@@ -436,7 +437,7 @@ export function CompareScreen({ ids, go, wide }: {
   go: (screen: string, params?: Record<string, unknown>) => void
   wide?: boolean
 }) {
-  const { irises } = useData()
+  const { irises, region } = useData()
   const subjects = ids.slice(0, 2).map(id => irises.find(i => i.id === id)).filter(Boolean) as Iris[]
 
   return (
@@ -565,7 +566,7 @@ export function CompareScreen({ ids, go, wide }: {
                       }}>
                         <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent)', marginBottom: 3 }}>{note.t}</div>
                         <div style={{ fontSize: 12.5, color: 'var(--ink-2)', lineHeight: 1.4 }}>{note.x}</div>
-                        <div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 4 }}>{note.d}</div>
+                        <div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 4 }}>{fmtDate(note.d, region)}</div>
                       </div>
                     ))}
                     {!iris.notes?.length && (

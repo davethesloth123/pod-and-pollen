@@ -5,6 +5,7 @@ import { IrisThumb, IrisCard, ActionRow, SectionLabel, btnReset } from '@/compon
 import { IrisBloom } from '@/components/ui/iris-bloom'
 import { DEFAULT_WIDGETS, WIDGETS, PAL } from '@/lib/data'
 import { useData } from '@/lib/data-context'
+import { fmtDate } from '@/lib/format'
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -222,7 +223,7 @@ function InFlowerWidget({ go }: { go: (view: string | -1, params?: Record<string
 }
 
 function RecentWidget({ go }: { go: (view: string | -1, params?: Record<string, any>) => void }) {
-  const { recent, byId } = useData()
+  const { recent, byId, region } = useData()
   if (recent.length === 0) {
     return (
       <div>
@@ -250,7 +251,7 @@ function RecentWidget({ go }: { go: (view: string | -1, params?: Record<string, 
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 2 }}>
                     <span style={{ fontWeight: 600, fontSize: 14.5, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>{item.irisName}</span>
-                    <span style={{ fontSize: 12, color: 'var(--ink-4)', flexShrink: 0 }}>{item.d}</span>
+                    <span style={{ fontSize: 12, color: 'var(--ink-4)', flexShrink: 0 }}>{fmtDate(item.d, region)}</span>
                   </div>
                   <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--accent)', marginBottom: 2 }}>{item.t}</div>
                   <div style={{ fontSize: 12.5, color: 'var(--ink-3)', lineHeight: 1.35, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const }}>{item.x}</div>

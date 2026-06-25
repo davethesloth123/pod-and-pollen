@@ -5,7 +5,7 @@ import { IrisBloom } from '@/components/ui/iris-bloom'
 import { SectionLabel, btnReset } from '@/components/ui/shared'
 import { DEFAULT_WIDGETS, WIDGETS, PAL } from '@/lib/data'
 import { createClient } from '@/lib/supabase/client'
-import { useData } from '@/lib/data-context'
+import { useData, type Region } from '@/lib/data-context'
 
 // ─── ComingSoon pill ──────────────────────────────────────────
 function ComingSoonPill() {
@@ -87,52 +87,56 @@ function SetRow({ icon, label, sub, onClick, chevron = true, tint = 'accent', is
   )
 }
 
-// ─── Units segmented control ──────────────────────────────────
-function UnitsRow({ units, setUnits, isLast }: { units: 'cm' | 'in'; setUnits: (u: 'cm' | 'in') => void; isLast?: boolean }) {
-  const opts: { k: 'cm' | 'in'; label: string }[] = [
-    { k: 'cm', label: 'cm' },
-    { k: 'in', label: 'in' },
+// ─── Region segmented control (date format + measurement units) ──
+function RegionRow({ region, setRegion, isLast }: { region: Region; setRegion: (r: Region) => void; isLast?: boolean }) {
+  const opts: { k: Region; label: string }[] = [
+    { k: 'UK', label: 'UK' },
+    { k: 'US', label: 'US' },
   ]
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 12,
-      padding: '13px 14px',
-      borderBottom: isLast ? 'none' : '1px solid var(--line)',
-    }}>
-      <span style={{
-        width: 34, height: 34, borderRadius: 9,
-        background: 'var(--accent-bg)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-      }}>
-        <Icon name="sliders" size={17} stroke="var(--accent)" sw={1.9} />
-      </span>
-      <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-        <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--ink)' }}>Measurement units</div>
-        <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 1 }}>Used for heights and spacing</div>
+    <div style={{ padding: '13px 14px', borderBottom: isLast ? 'none' : '1px solid var(--line)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <span style={{
+          width: 34, height: 34, borderRadius: 9,
+          background: 'var(--accent-bg)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        }}>
+          <Icon name="sliders" size={17} stroke="var(--accent)" sw={1.9} />
+        </span>
+        <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+          <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--ink)' }}>Region &amp; units</div>
+          <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 1 }}>
+            {region === 'US' ? 'mm-dd-yyyy · inches' : 'dd-mm-yyyy · cm'}
+          </div>
+        </div>
+        <div style={{
+          display: 'flex', gap: 2, padding: 2, borderRadius: 10,
+          background: 'var(--surface-2)', border: '1px solid var(--line)', flexShrink: 0,
+        }}>
+          {opts.map(opt => {
+            const active = region === opt.k
+            return (
+              <button
+                key={opt.k}
+                onClick={() => setRegion(opt.k)}
+                style={{
+                  ...btnReset, cursor: 'pointer',
+                  padding: '6px 14px', borderRadius: 8,
+                  fontSize: 13.5, fontWeight: 600,
+                  background: active ? 'var(--accent)' : 'transparent',
+                  color: active ? '#fff' : 'var(--ink-2)',
+                  transition: 'all .15s',
+                }}
+              >
+                {opt.label}
+              </button>
+            )
+          })}
+        </div>
       </div>
-      <div style={{
-        display: 'flex', gap: 2, padding: 2, borderRadius: 10,
-        background: 'var(--surface-2)', border: '1px solid var(--line)', flexShrink: 0,
-      }}>
-        {opts.map(opt => {
-          const active = units === opt.k
-          return (
-            <button
-              key={opt.k}
-              onClick={() => setUnits(opt.k)}
-              style={{
-                ...btnReset, cursor: 'pointer',
-                padding: '6px 14px', borderRadius: 8,
-                fontSize: 13.5, fontWeight: 600,
-                background: active ? 'var(--accent)' : 'transparent',
-                color: active ? '#fff' : 'var(--ink-2)',
-                transition: 'all .15s',
-              }}
-            >
-              {opt.label}
-            </button>
-          )
-        })}
+      <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 9, lineHeight: 1.45 }}>
+        UK uses dd-mm-yyyy and centimetres; US uses mm-dd-yyyy and inches. Switching converts length
+        measurements from cm to the nearest whole inch, or from inches to the nearest whole cm.
       </div>
     </div>
   )
@@ -150,7 +154,7 @@ interface SettingsScreenProps {
 }
 
 export function SettingsScreen({ go, toast, signOut, user: userProp, onSignOut, onImport }: SettingsScreenProps) {
-  const { units, setUnits } = useData()
+  const { region, setRegion } = useData()
   const [userData, setUserData] = useState<any>(userProp || null)
   const [confirmSignOut, setConfirmSignOut] = useState(false)
 
@@ -233,9 +237,9 @@ export function SettingsScreen({ go, toast, signOut, user: userProp, onSignOut, 
         <SetRow icon="list" label="Manage locations" sub="Edit and reorder your garden locations" onClick={() => toast('Coming soon')} isLast />
       </SetSection>
 
-      {/* ── Display ── */}
-      <SetSection label="Display">
-        <UnitsRow units={units} setUnits={setUnits} />
+      {/* ── Region & display ── */}
+      <SetSection label="Region & display">
+        <RegionRow region={region} setRegion={setRegion} />
         <SetRow icon="eye" label="Text size" sub="Adjust reading comfort" comingSoon isLast />
       </SetSection>
 

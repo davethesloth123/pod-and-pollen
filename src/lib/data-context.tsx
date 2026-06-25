@@ -20,6 +20,7 @@ import {
 export interface RecentActivity { irisId: string; irisName: string; d: string; t: string; x: string; ts: string }
 export interface CrossStats { seeds: number; total: number; flowering: number; firstFlower: number; flowered: number; growing: number; watch: number }
 export type Units = 'cm' | 'in'
+export type Region = 'UK' | 'US'
 
 interface DataContextValue {
   ready: boolean
@@ -29,8 +30,9 @@ interface DataContextValue {
   irises: Iris[]
   crosses: Cross[]
   recent: RecentActivity[]
+  region: Region
+  setRegion: (r: Region) => void
   units: Units
-  setUnits: (u: Units) => void
   byId: (id: string) => Iris | undefined
   crossStats: (crossId: string) => CrossStats
   addLocation: (input: NewLocation) => Promise<void>
@@ -65,17 +67,24 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [evals, setEvals] = useState<EvalRow[]>([])
   const [rawCrosses, setRawCrosses] = useState<Cross[]>([])
   const [seedBatches, setSeedBatches] = useState<SeedBatch[]>([])
-  const [units, setUnitsState] = useState<Units>('cm')
+  const [region, setRegionState] = useState<Region>('UK')
   const [userId, setUserId] = useState<string | null>(null)
+  const units: Units = region === 'US' ? 'in' : 'cm'
 
-  // Per-user units preference
+  // Per-user region preference (migrates the old cm/in units key if present)
   useEffect(() => {
     if (!userId) return
-    try { const u = localStorage.getItem(`bl_units_${userId}`); if (u === 'cm' || u === 'in') setUnitsState(u) } catch { /* ignore */ }
+    try {
+      const r = localStorage.getItem(`bl_region_${userId}`)
+      if (r === 'UK' || r === 'US') { setRegionState(r); return }
+      const u = localStorage.getItem(`bl_units_${userId}`)
+      if (u === 'in') setRegionState('US')
+      else if (u === 'cm') setRegionState('UK')
+    } catch { /* ignore */ }
   }, [userId])
-  const setUnits = useCallback((u: Units) => {
-    setUnitsState(u)
-    try { if (userId) localStorage.setItem(`bl_units_${userId}`, u) } catch { /* ignore */ }
+  const setRegion = useCallback((r: Region) => {
+    setRegionState(r)
+    try { if (userId) localStorage.setItem(`bl_region_${userId}`, r) } catch { /* ignore */ }
   }, [userId])
 
   const load = useCallback(async () => {
@@ -345,12 +354,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }, [rawIrises])
 
   const value = useMemo<DataContextValue>(() => ({
-    ready, loadError, userId, locations, irises, crosses, recent, units, setUnits, byId, crossStats,
+    ready, loadError, userId, locations, irises, crosses, recent, region, setRegion, units, byId, crossStats,
     addLocation, addIris, addNote, addFlowering, addEvaluation, addCross,
     seedBatchFor, saveSeedBatch, addSeedlings,
     updateIris, deleteIris, setStatus, toggleFav, updateLocation, deleteLocation, deleteNote,
     refresh: load,
-  }), [ready, loadError, userId, locations, irises, crosses, recent, units, setUnits, byId, crossStats,
+  }), [ready, loadError, userId, locations, irises, crosses, recent, region, setRegion, units, byId, crossStats,
     addLocation, addIris, addNote, addFlowering, addEvaluation, addCross,
     seedBatchFor, saveSeedBatch, addSeedlings,
     updateIris, deleteIris, setStatus, toggleFav, updateLocation, deleteLocation, deleteNote, load])

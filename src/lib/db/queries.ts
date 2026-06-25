@@ -4,12 +4,15 @@ import type {
   LocationRow, IrisRow, NoteRow, FloweringRowDb, EvalRowDb, CrossRow, SeedBatchRow,
 } from '@/lib/db/row-types'
 
-function fmtDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-  } catch {
-    return iso
-  }
+// Canonical ISO date (yyyy-mm-dd) for storage in app types; display is formatted
+// per-region at render time via src/lib/format.ts.
+function isoDate(value: string | null | undefined): string {
+  if (!value) return ''
+  const s = String(value)
+  const m = s.match(/^\d{4}-\d{2}-\d{2}/)
+  if (m) return m[0]
+  const dt = new Date(s)
+  return isNaN(dt.getTime()) ? s : dt.toISOString().slice(0, 10)
 }
 
 // ─── Row → app-shape mappers ──────────────────────────────────
@@ -200,7 +203,7 @@ export function dbToNote(row: NoteRow): IrisNoteRow {
   return {
     irisId: row.iris_id,
     id: row.id,
-    d: fmtDate(row.noted_at),
+    d: isoDate(row.noted_at),
     t: row.note_type ?? 'General',
     x: row.body,
     ts: row.noted_at,
@@ -302,7 +305,7 @@ export function dbToEval(row: EvalRowDb): EvalRow {
     avg: row.average ?? undefined,
     verdict: row.verdict ?? undefined,
     comments: row.comments ?? undefined,
-    date: fmtDate(row.evaluated_at),
+    date: isoDate(row.evaluated_at),
   }
 }
 

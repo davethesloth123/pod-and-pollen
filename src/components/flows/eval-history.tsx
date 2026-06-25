@@ -1,6 +1,8 @@
 'use client'
 import { Icon } from '@/components/ui/icon'
 import { Sheet, btnReset, RatingDots } from '@/components/ui/shared'
+import { useData } from '@/lib/data-context'
+import { fmtDate } from '@/lib/format'
 import type { Iris, EvalRecord } from '@/types'
 
 interface EvalHistorySheetProps {
@@ -36,6 +38,7 @@ function OutcomeBadge({ verdict }: { verdict?: string }) {
 }
 
 function EvalCard({ record, onEdit }: { record: EvalRecord; onEdit: (r: EvalRecord) => void }) {
+  const { region } = useData()
   const excerpt = record.comments
     ? record.comments.length > 80 ? record.comments.slice(0, 80) + '…' : record.comments
     : null
@@ -51,7 +54,7 @@ function EvalCard({ record, onEdit }: { record: EvalRecord; onEdit: (r: EvalReco
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
         <div>
           <div style={{ fontSize: 13, color: 'var(--ink-3)', fontWeight: 500, marginBottom: 4 }}>
-            {record.date || (record.year ? `${record.year}` : 'No date')}
+            {fmtDate(record.date, region) || (record.year ? `${record.year}` : 'No date')}
           </div>
           {record.avg !== undefined && (
             <RatingDots value={Math.round(record.avg)} max={5} size={22} readOnly />

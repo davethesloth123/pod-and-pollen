@@ -8,11 +8,8 @@ import {
 } from '@/components/ui/shared'
 import { PAL, lifecycleFor, latestEval } from '@/lib/data'
 import { useData } from '@/lib/data-context'
+import { fmtDate, fmtHeight } from '@/lib/format'
 import type { Iris, IrisNote, LifecycleStep } from '@/types'
-
-function fmtHeight(cm: number, units: 'cm' | 'in') {
-  return units === 'in' ? `${Math.round(cm / 2.54)}"` : `${cm} cm`
-}
 
 // ─── Types ────────────────────────────────────────────────────
 interface IrisDetailScreenProps {
@@ -51,10 +48,6 @@ const NOTE_ICONS: Record<string, string> = {
 
 function noteIcon(type: string): string {
   return NOTE_ICONS[type] || 'note'
-}
-
-function fmtDate(d: string): string {
-  return d
 }
 
 // ─── ParentChip ───────────────────────────────────────────────
@@ -223,6 +216,7 @@ function PhotoStrip({
 
 // ─── Note row ─────────────────────────────────────────────────
 function NoteRow({ note }: { note: IrisNote }) {
+  const { region } = useData()
   const icon = noteIcon(note.t)
   return (
     <div
@@ -269,7 +263,7 @@ function NoteRow({ note }: { note: IrisNote }) {
           >
             {note.t}
           </span>
-          <span style={{ fontSize: 12, color: 'var(--ink-4)' }}>{fmtDate(note.d)}</span>
+          <span style={{ fontSize: 12, color: 'var(--ink-4)' }}>{fmtDate(note.d, region)}</span>
         </div>
         <div style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.5 }}>{note.x}</div>
       </div>
@@ -629,7 +623,7 @@ function CrossesSection({
 
 // ─── Flowering history ────────────────────────────────────────
 function FloweringHistory({ iris }: { iris: Iris }) {
-  const { units } = useData()
+  const { region } = useData()
   const history = iris.floweringHistory
   if (!history || history.length === 0) return null
 
@@ -682,8 +676,8 @@ function FloweringHistory({ iris }: { iris: Iris }) {
                     }}
                   >
                     <Icon name="flower" size={12} stroke="var(--rose)" sw={2} />
-                    {rec.first}
-                    {rec.last ? ` – ${rec.last}` : ' (ongoing)'}
+                    {fmtDate(rec.first, region)}
+                    {rec.last ? ` – ${fmtDate(rec.last, region)}` : ' (ongoing)'}
                   </span>
                 )}
                 {rec.stems !== undefined && (
@@ -698,7 +692,7 @@ function FloweringHistory({ iris }: { iris: Iris }) {
                 )}
                 {rec.height !== undefined && (
                   <span style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>
-                    {fmtHeight(rec.height, units)}
+                    {fmtHeight(rec.height, region)}
                   </span>
                 )}
               </div>
@@ -733,9 +727,9 @@ export function IrisDetailScreen({
   openEdit,
   toast,
 }: IrisDetailScreenProps) {
-  const { byId, toggleFav, setStatus, deleteIris, units } = useData()
+  const { byId, toggleFav, setStatus, deleteIris, region } = useData()
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const fmtH = (cm: number) => fmtHeight(cm, units)
+  const fmtH = (cm: number) => fmtHeight(cm, region)
   const iris = byId(id)
 
   if (!iris) {
