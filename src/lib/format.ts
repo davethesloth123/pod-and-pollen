@@ -13,9 +13,15 @@ export function regionUnit(region: Region): 'cm' | 'in' {
 export function fmtDate(value: string | null | undefined, region: Region): string {
   if (!value) return ''
   const s = String(value)
-  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/)
-  if (m) {
-    const [, y, mo, d] = m
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (iso) {
+    const [, y, mo, d] = iso
+    return region === 'US' ? `${mo}-${d}-${y}` : `${d}-${mo}-${y}`
+  }
+  // Legacy values were stored as UK dd/mm/yyyy strings — reinterpret and reformat.
+  const uk = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
+  if (uk) {
+    const [, d, mo, y] = uk
     return region === 'US' ? `${mo}-${d}-${y}` : `${d}-${mo}-${y}`
   }
   const dt = new Date(s)

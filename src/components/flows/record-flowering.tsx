@@ -36,17 +36,17 @@ export function RecordFloweringFlow({ open, iris, onClose, onSaved }: RecordFlow
     setSaving(true)
     setError('')
     try {
-      const [y, m, d] = date.split('-')
-      const displayDate = y ? `${d}/${m}/${y}` : date
+      const [y] = date.split('-')
+      // Store ISO (yyyy-mm-dd); display is formatted per-region at render.
       const newStatus = (iris.kind === 'Seedling' && iris.status === 'Growing') ? 'First flower' : 'Flowering'
       await addFlowering({
         irisId: iris.id,
         year: y ? Number(y) : new Date().getFullYear(),
-        first: displayDate,
+        first: date,
         notes: notes.trim() || undefined,
         setStatus: newStatus,
       })
-      onSaved(displayDate)
+      onSaved(date)
       handleClose()
     } catch (e) {
       console.error(e)

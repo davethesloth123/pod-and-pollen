@@ -142,7 +142,7 @@ export function CrossesScreen({ go, wide, openAdd, openNewCross }: {
     if (filter === 'Complete') return c.status === 'Evaluating'
     if (filter === 'Archived') return c.status === 'Archived'
     return true
-  })
+  }).slice().sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }))
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
