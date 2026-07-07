@@ -238,6 +238,19 @@ export async function insertNote(supabase: SupabaseClient, userId: string, input
   return dbToNote(data)
 }
 
+export interface NotePatch { type?: string; body?: string; date?: string }
+
+export async function updateNote(supabase: SupabaseClient, userId: string, id: string, patch: NotePatch): Promise<IrisNoteRow> {
+  const col: Record<string, unknown> = {}
+  if (patch.type !== undefined) col.note_type = patch.type || 'General'
+  if (patch.body !== undefined) col.body = patch.body
+  if (patch.date !== undefined) col.noted_at = new Date(patch.date).toISOString()
+  const { data, error } = await supabase
+    .from('notes').update(col).eq('id', id).eq('user_id', userId).select().single()
+  if (error) throw error
+  return dbToNote(data)
+}
+
 // ─── Flowering records ────────────────────────────────────────
 export type FloweringRow = FloweringRecord & { irisId: string }
 
@@ -249,14 +262,19 @@ export function dbToFlowering(row: FloweringRowDb): FloweringRow {
     last: row.last_date ?? null,
     stems: row.stems ?? undefined,
     buds: row.buds ?? undefined,
+    branchCount: row.branch_count ?? undefined,
     height: row.height_cm ?? undefined,
+    bloomHeight: row.bloom_height_cm ?? undefined,
+    bloomWidth: row.bloom_width_cm ?? undefined,
     notes: row.notes ?? undefined,
   }
 }
 
 export interface NewFlowering {
   irisId: string; year: number; first?: string; last?: string
-  stems?: number; buds?: number; height?: number; notes?: string
+  stems?: number; buds?: number; branchCount?: number
+  height?: number; bloomHeight?: number; bloomWidth?: number
+  notes?: string
 }
 
 export async function fetchFlowering(supabase: SupabaseClient, userId: string): Promise<FloweringRow[]> {
@@ -280,7 +298,10 @@ export async function upsertFlowering(supabase: SupabaseClient, userId: string, 
       last_date: input.last || null,
       stems: input.stems ?? null,
       buds: input.buds ?? null,
+      branch_count: input.branchCount ?? null,
       height_cm: input.height ?? null,
+      bloom_height_cm: input.bloomHeight ?? null,
+      bloom_width_cm: input.bloomWidth ?? null,
       notes: input.notes || null,
     }, { onConflict: 'iris_id,year' })
     .select()

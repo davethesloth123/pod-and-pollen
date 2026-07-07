@@ -1,13 +1,14 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Icon } from '@/components/ui/icon'
 import { Sheet, btnReset, IrisContextHeader, inputStyle, labelStyle } from '@/components/ui/shared'
 import { useData } from '@/lib/data-context'
-import type { Iris } from '@/types'
+import type { Iris, IrisNote } from '@/types'
 
 interface QuickNoteFlowProps {
   open: boolean
   iris?: Iris
+  editNote?: IrisNote
   onClose: () => void
   onSaved: (type: string) => void
 }
@@ -25,8 +26,9 @@ function todayStr() {
   return d.toISOString().split('T')[0]
 }
 
-export function QuickNoteFlow({ open, iris, onClose, onSaved }: QuickNoteFlowProps) {
-  const { irises, addNote } = useData()
+export function QuickNoteFlow({ open, iris, editNote, onClose, onSaved }: QuickNoteFlowProps) {
+  const { irises, addNote, updateNote } = useData()
+  const editing = !!editNote
   const [noteType, setNoteType] = useState('Observation')
   const [body, setBody] = useState('')
   const [date, setDate] = useState(todayStr())
@@ -35,30 +37,45 @@ export function QuickNoteFlow({ open, iris, onClose, onSaved }: QuickNoteFlowPro
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
+  // Reset (or prefill for edit) whenever the sheet opens
+  useEffect(() => {
+    if (!open) return
+    setNoteType(editNote?.t || 'Observation')
+    setBody(editNote?.x || '')
+    setDate(editNote?.d || todayStr())
+    setSelectedIris(iris?.name || '')
+    setIrisSearch('')
+    setSaving(false)
+    setError('')
+  }, [open, editNote, iris])
+
   const irisNames = irises.map(i => i.name)
   const filteredIrises = irisSearch
     ? irisNames.filter(n => n.toLowerCase().includes(irisSearch.toLowerCase()))
     : []
 
+  // If an existing note's type isn't one of the standard chips (e.g. legacy
+  // 'General' notes), still show it as a selectable chip so it stays visible.
+  const chipTypes = NOTE_TYPES.some(t => t.id === noteType)
+    ? NOTE_TYPES
+    : [{ id: noteType, icon: 'note' }, ...NOTE_TYPES]
+
   function handleClose() {
-    setNoteType('Observation')
-    setBody('')
-    setDate(todayStr())
-    setSelectedIris(iris?.name || '')
-    setIrisSearch('')
-    setSaving(false)
-    setError('')
     onClose()
   }
 
   async function handleSave() {
     if (saving || !body.trim()) return
-    const target = iris ?? irises.find(i => i.name === selectedIris)
-    if (!target) { setError('Pick an iris to attach this note to.'); return }
     setSaving(true)
     setError('')
     try {
-      await addNote({ irisId: target.id, type: noteType, body: body.trim(), date })
+      if (editing && editNote?.id) {
+        await updateNote(editNote.id, { type: noteType, body: body.trim(), date })
+      } else {
+        const target = iris ?? irises.find(i => i.name === selectedIris)
+        if (!target) { setError('Pick an iris to attach this note to.'); setSaving(false); return }
+        await addNote({ irisId: target.id, type: noteType, body: body.trim(), date })
+      }
       onSaved(noteType)
       handleClose()
     } catch (e) {
@@ -71,13 +88,13 @@ export function QuickNoteFlow({ open, iris, onClose, onSaved }: QuickNoteFlowPro
   const canSave = body.trim().length > 0 && !saving
 
   return (
-    <Sheet open={open} onClose={handleClose} title="Quick Note">
+    <Sheet open={open} onClose={handleClose} title={editing ? 'Edit Note' : 'Quick Note'}>
       <div style={{ padding: '4px 18px 28px', display: 'flex', flexDirection: 'column', gap: 18 }}>
 
         <div>
           <label style={labelStyle}>NOTE TYPE</label>
           <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2 }}>
-            {NOTE_TYPES.map(t => (
+            {chipTypes.map(t => (
               <button
                 key={t.id}
                 onClick={() => setNoteType(t.id)}
@@ -106,7 +123,7 @@ export function QuickNoteFlow({ open, iris, onClose, onSaved }: QuickNoteFlowPro
           </div>
         </div>
 
-        {!iris && (
+        {!iris && !editing && (
           <div>
             <label style={labelStyle}>IRIS</label>
             <input
@@ -134,7 +151,7 @@ export function QuickNoteFlow({ open, iris, onClose, onSaved }: QuickNoteFlowPro
           </div>
         )}
 
-        {iris && <IrisContextHeader iris={iris} label="Note for" />}
+        {iris && <IrisContextHeader iris={iris} label={editing ? 'Editing note for' : 'Note for'} />}
 
         <div>
           <label style={labelStyle}>NOTE</label>
@@ -180,8 +197,8 @@ export function QuickNoteFlow({ open, iris, onClose, onSaved }: QuickNoteFlowPro
             gap: 8,
           }}
         >
-          <Icon name="note" size={18} stroke="#fff" sw={2} />
-          {saving ? 'Saving…' : 'Save Note'}
+          <Icon name={editing ? 'check' : 'note'} size={18} stroke="#fff" sw={2} />
+          {saving ? 'Saving…' : editing ? 'Save Changes' : 'Save Note'}
         </button>
       </div>
     </Sheet>

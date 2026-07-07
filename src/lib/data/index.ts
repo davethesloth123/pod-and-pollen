@@ -57,6 +57,10 @@ export function lifecycleFor(iris: Iris): LifecycleStep[] {
   }
   set('variety', 'done', `Seedling ${iris.name}`)
   if (iris.podParent) set('parentage', 'done', `${iris.podParent} × ${iris.pollenParent}`)
+  // A seedling only becomes its own plant record once its cross's seed batch
+  // has germinated (that's what the Add Seedlings flow follows), so this
+  // stage is always complete for an existing seedling record.
+  set('germ', 'done', iris.planted ? `Germinated & potted ${iris.planted}` : 'Germinated & potted')
   if (iris.firstFlower || iris.status === 'Flowering' || iris.status === 'First flower') set('firstflower', 'done', iris.firstFlower ? `First flower ${iris.firstFlower}` : 'Flowered')
   const evals = iris.evaluations || []
   if (evals.length > 0) set('evaluation', 'done', `${evals.length} evaluation${evals.length > 1 ? 's' : ''}`)

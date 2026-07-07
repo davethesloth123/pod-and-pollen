@@ -66,7 +66,10 @@ export interface FloweringRowDb {
   last_date: string | null
   stems: number | null
   buds: number | null
+  branch_count: number | null
   height_cm: number | null
+  bloom_height_cm: number | null
+  bloom_width_cm: number | null
   notes: string | null
 }
 

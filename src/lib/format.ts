@@ -48,3 +48,14 @@ export function cmFromDisplay(value: number, region: Region): number {
 export function displayFromCm(cm: number, region: Region): number {
   return region === 'US' ? Math.round(cm / CM_PER_IN) : Math.round(cm)
 }
+
+// Whole days between two ISO dates (first bloom → last bloom), or undefined
+// if either is missing/invalid/negative.
+export function daysBetweenIso(a: string | null | undefined, b: string | null | undefined): number | undefined {
+  if (!a || !b) return undefined
+  const da = new Date(a)
+  const db = new Date(b)
+  if (isNaN(da.getTime()) || isNaN(db.getTime())) return undefined
+  const diff = Math.round((db.getTime() - da.getTime()) / 86400000)
+  return diff >= 0 ? diff : undefined
+}

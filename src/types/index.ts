@@ -14,11 +14,14 @@ export interface ColorDef {
 
 export interface FloweringRecord {
   year: number
-  first: string | null   // DD/MM/YYYY
+  first: string | null   // ISO date (yyyy-mm-dd)
   last: string | null
   stems?: number
   buds?: number
-  height?: number
+  branchCount?: number
+  height?: number         // whole cm
+  bloomHeight?: number    // whole cm
+  bloomWidth?: number     // whole cm
   notes?: string
 }
 

@@ -11,7 +11,7 @@ import {
   fetchCrosses, insertCross, type NewCross,
   updateIris as dbUpdateIris, deleteIris as dbDeleteIris, type IrisPatch,
   updateLocation as dbUpdateLocation, deleteLocation as dbDeleteLocation, type LocationPatch,
-  deleteNote as dbDeleteNote,
+  deleteNote as dbDeleteNote, updateNote as dbUpdateNote, type NotePatch,
   fetchSeedBatches, saveSeedBatch as dbSaveSeedBatch, type SeedBatchPatch,
   insertSeedlings, type NewSeedling,
   updateCrossParents as dbUpdateCrossParents,
@@ -51,6 +51,7 @@ interface DataContextValue {
   updateLocation: (id: string, patch: LocationPatch) => Promise<void>
   deleteLocation: (id: string) => Promise<void>
   deleteNote: (id: string) => Promise<void>
+  updateNote: (id: string, patch: NotePatch) => Promise<void>
   refresh: () => Promise<void>
 }
 
@@ -335,6 +336,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setNotes(prev => prev.filter(n => n.id !== id))
   }, [supabase, requireUser])
 
+  const updateNote = useCallback(async (id: string, patch: NotePatch) => {
+    const user = await requireUser()
+    const updated = await dbUpdateNote(supabase, user.id, id, patch)
+    setNotes(prev => prev.map(n => n.id === id ? updated : n))
+  }, [supabase, requireUser])
+
   const byId = useCallback((id: string) => irises.find(i => i.id === id), [irises])
 
   // Cross funnel stats derived from real seedlings (seeds come later with batches)
@@ -357,12 +364,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     ready, loadError, userId, locations, irises, crosses, recent, region, setRegion, units, byId, crossStats,
     addLocation, addIris, addNote, addFlowering, addEvaluation, addCross,
     seedBatchFor, saveSeedBatch, addSeedlings,
-    updateIris, deleteIris, setStatus, toggleFav, updateLocation, deleteLocation, deleteNote,
+    updateIris, deleteIris, setStatus, toggleFav, updateLocation, deleteLocation, deleteNote, updateNote,
     refresh: load,
   }), [ready, loadError, userId, locations, irises, crosses, recent, region, setRegion, units, byId, crossStats,
     addLocation, addIris, addNote, addFlowering, addEvaluation, addCross,
     seedBatchFor, saveSeedBatch, addSeedlings,
-    updateIris, deleteIris, setStatus, toggleFav, updateLocation, deleteLocation, deleteNote, load])
+    updateIris, deleteIris, setStatus, toggleFav, updateLocation, deleteLocation, deleteNote, updateNote, load])
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
 }

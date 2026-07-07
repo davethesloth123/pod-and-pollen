@@ -334,7 +334,7 @@ export function AppShell() {
   // ── Sheet helpers ────────────────────────────────────────────
   const openAdd = () => setSheet({ kind: 'add' })
   const openLocation = () => setSheet({ kind: 'location' })
-  const openNote = (iris?: any) => setSheet({ kind: 'note', iris })
+  const openNote = (iris?: any, editNote?: any) => setSheet({ kind: 'note', iris, editNote })
   const openPhoto = (iris?: any) => setSheet({ kind: 'photo', iris })
   const closeSheet = () => setSheet(null)
 
@@ -411,7 +411,7 @@ export function AppShell() {
             openStage={(iris: any, stage: string) => setSheet({ kind: 'stage', iris, stage })}
             openEval={(iris: any) => setSheet({ kind: 'evaluate', iris })}
             openEvalHistory={(iris: any) => setSheet({ kind: 'evalHistory', iris })}
-            openFlowering={(iris: any) => setSheet({ kind: 'flowering', iris })}
+            openFlowering={(iris: any, editRecord?: any) => setSheet({ kind: 'flowering', iris, editRecord })}
             openPollination={(iris: any) => setSheet({ kind: 'pollination', iris })}
             openPhotoViewer={(photos: any[], index: number) => setSheet({ kind: 'photoViewer', photos, index })}
             openEdit={(iris: any) => setSheet({ kind: 'add', editIris: iris })}
@@ -520,8 +520,9 @@ export function AppShell() {
       <QuickNoteFlow
         open={sheet?.kind === 'note'}
         iris={sheet?.iris}
+        editNote={sheet?.editNote}
         onClose={closeSheet}
-        onSaved={(type: string) => { closeSheet(); toast(`${type} note saved`) }}
+        onSaved={(type: string) => { closeSheet(); toast(sheet?.editNote ? 'Note updated' : `${type} note saved`) }}
       />
 
       {/* Add photo */}
@@ -560,8 +561,9 @@ export function AppShell() {
       <RecordFloweringFlow
         open={sheet?.kind === 'flowering'}
         iris={sheet?.iris}
+        editRecord={sheet?.editRecord}
         onClose={closeSheet}
-        onSaved={(date: string) => { closeSheet(); toast(`Flowering recorded · ${date}`) }}
+        onSaved={(date: string) => { closeSheet(); toast(sheet?.editRecord ? 'Flowering record updated' : `Flowering recorded · ${date}`) }}
       />
 
       {/* Record pollination */}

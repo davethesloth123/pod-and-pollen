@@ -8,20 +8,20 @@ import {
 } from '@/components/ui/shared'
 import { PAL, lifecycleFor, latestEval } from '@/lib/data'
 import { useData } from '@/lib/data-context'
-import { fmtDate, fmtHeight } from '@/lib/format'
-import type { Iris, IrisNote, LifecycleStep } from '@/types'
+import { fmtDate, fmtHeight, daysBetweenIso } from '@/lib/format'
+import type { Iris, IrisNote, FloweringRecord, LifecycleStep } from '@/types'
 
 // ─── Types ────────────────────────────────────────────────────
 interface IrisDetailScreenProps {
   id: string
   go: (view: string | number, params?: Record<string, any>) => void
   wide: boolean
-  openNote: (iris: Iris) => void
+  openNote: (iris: Iris, editNote?: IrisNote) => void
   openPhoto: (iris: Iris) => void
   openStage: (iris: Iris, stage: string) => void
   openEval: (iris: Iris) => void
   openEvalHistory: (iris: Iris) => void
-  openFlowering: (iris: Iris) => void
+  openFlowering: (iris: Iris, editRecord?: FloweringRecord) => void
   openPollination: (iris: Iris) => void
   openPhotoViewer: (photos: any[], index: number) => void
   openEdit: (iris: Iris) => void
@@ -215,7 +215,7 @@ function PhotoStrip({
 }
 
 // ─── Note row ─────────────────────────────────────────────────
-function NoteRow({ note }: { note: IrisNote }) {
+function NoteRow({ note, onEdit }: { note: IrisNote; onEdit: () => void }) {
   const { region } = useData()
   const icon = noteIcon(note.t)
   return (
@@ -259,11 +259,19 @@ function NoteRow({ note }: { note: IrisNote }) {
               color: 'var(--ink-3)',
               textTransform: 'uppercase',
               letterSpacing: 0.3,
+              flex: 1,
             }}
           >
             {note.t}
           </span>
           <span style={{ fontSize: 12, color: 'var(--ink-4)' }}>{fmtDate(note.d, region)}</span>
+          <button
+            onClick={onEdit}
+            aria-label="Edit note"
+            style={{ ...btnReset, cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 2, flexShrink: 0 }}
+          >
+            <Icon name="edit" size={14} stroke="var(--ink-4)" sw={1.9} />
+          </button>
         </div>
         <div style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.5 }}>{note.x}</div>
       </div>
@@ -621,8 +629,63 @@ function CrossesSection({
   )
 }
 
+// ─── Flowering summary (primary averaged panel) ────────────────
+function avg(nums: number[]): number | undefined {
+  return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : undefined
+}
+
+function FloweringSummary({ iris }: { iris: Iris }) {
+  const { region } = useData()
+  const history = iris.floweringHistory
+  if (!history || history.length === 0) return null
+
+  const periodDays = history.map(r => daysBetweenIso(r.first, r.last)).filter((v): v is number => v !== undefined)
+  const stems = history.map(r => r.stems).filter((v): v is number => v !== undefined)
+  const buds = history.map(r => r.buds).filter((v): v is number => v !== undefined)
+  const branches = history.map(r => r.branchCount).filter((v): v is number => v !== undefined)
+  const heights = history.map(r => r.height).filter((v): v is number => v !== undefined)
+  const bloomHeights = history.map(r => r.bloomHeight).filter((v): v is number => v !== undefined)
+  const bloomWidths = history.map(r => r.bloomWidth).filter((v): v is number => v !== undefined)
+
+  const avgPeriod = avg(periodDays)
+  const avgStems = avg(stems)
+  const avgBuds = avg(buds)
+  const avgBranches = avg(branches)
+  const avgHeight = avg(heights)
+  const avgBloomHeight = avg(bloomHeights)
+  const avgBloomWidth = avg(bloomWidths)
+
+  const rows = ([
+    avgPeriod !== undefined ? { label: 'Avg. flowering period', value: `${Math.round(avgPeriod)} days` } : null,
+    avgStems !== undefined ? { label: 'Avg. stems per plant', value: avgStems.toFixed(1) } : null,
+    avgBuds !== undefined ? { label: 'Avg. bud count per stem', value: avgBuds.toFixed(1) } : null,
+    avgBranches !== undefined ? { label: 'Avg. branch count', value: avgBranches.toFixed(1) } : null,
+    avgHeight !== undefined ? { label: 'Avg. plant height', value: fmtHeight(avgHeight, region) } : null,
+    (avgBloomHeight !== undefined || avgBloomWidth !== undefined) ? {
+      label: 'Avg. bloom size',
+      value: `${avgBloomHeight !== undefined ? fmtHeight(avgBloomHeight, region) : '—'} × ${avgBloomWidth !== undefined ? fmtHeight(avgBloomWidth, region) : '—'}`,
+    } : null,
+  ].filter(Boolean) as { label: string; value: string }[])
+
+  if (rows.length === 0) return null
+
+  return (
+    <div style={{ margin: '22px 18px 0' }}>
+      <SectionLabel>{history.length} year{history.length !== 1 ? 's' : ''} recorded — averages</SectionLabel>
+      <div style={{ background: 'var(--surface)', borderRadius: 16, border: '1px solid var(--line)', padding: '4px 14px' }}>
+        {rows.map((r, i) => (
+          <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 16, padding: '11px 0', borderBottom: i < rows.length - 1 ? '1px solid var(--line)' : 'none' }}>
+            <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-4)' }}>{r.label}</span>
+            <span style={{ fontSize: 14, color: 'var(--ink)', fontWeight: 600, textAlign: 'right' }}>{r.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ─── Flowering history ────────────────────────────────────────
-function FloweringHistory({ iris }: { iris: Iris }) {
+function FloweringHistory({ iris, onEdit }: { iris: Iris; onEdit: (rec: FloweringRecord) => void }) {
   const { region } = useData()
   const history = iris.floweringHistory
   if (!history || history.length === 0) return null
@@ -631,7 +694,9 @@ function FloweringHistory({ iris }: { iris: Iris }) {
     <div style={{ margin: '22px 18px 0' }}>
       <SectionLabel>Flowering history</SectionLabel>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-        {[...history].reverse().map((rec, i) => (
+        {[...history].reverse().map((rec, i) => {
+          const periodDays = daysBetweenIso(rec.first, rec.last)
+          return (
           <div
             key={rec.year}
             style={{
@@ -680,6 +745,11 @@ function FloweringHistory({ iris }: { iris: Iris }) {
                     {rec.last ? ` – ${fmtDate(rec.last, region)}` : ' (ongoing)'}
                   </span>
                 )}
+                {periodDays !== undefined && (
+                  <span style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>
+                    {periodDays} day{periodDays !== 1 ? 's' : ''}
+                  </span>
+                )}
                 {rec.stems !== undefined && (
                   <span style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>
                     {rec.stems} stem{rec.stems !== 1 ? 's' : ''}
@@ -687,12 +757,22 @@ function FloweringHistory({ iris }: { iris: Iris }) {
                 )}
                 {rec.buds !== undefined && (
                   <span style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>
-                    {rec.buds} buds
+                    {rec.buds} bud{rec.buds !== 1 ? 's' : ''}
+                  </span>
+                )}
+                {rec.branchCount !== undefined && (
+                  <span style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>
+                    {rec.branchCount} branch{rec.branchCount !== 1 ? 'es' : ''}
                   </span>
                 )}
                 {rec.height !== undefined && (
                   <span style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>
                     {fmtHeight(rec.height, region)}
+                  </span>
+                )}
+                {(rec.bloomHeight !== undefined || rec.bloomWidth !== undefined) && (
+                  <span style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>
+                    Bloom {rec.bloomHeight !== undefined ? fmtHeight(rec.bloomHeight, region) : '—'} × {rec.bloomWidth !== undefined ? fmtHeight(rec.bloomWidth, region) : '—'}
                   </span>
                 )}
               </div>
@@ -704,8 +784,16 @@ function FloweringHistory({ iris }: { iris: Iris }) {
                 </div>
               )}
             </div>
+            <button
+              onClick={() => onEdit(rec)}
+              aria-label={`Edit ${rec.year} flowering record`}
+              style={{ ...btnReset, cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 4, flexShrink: 0, marginTop: 2 }}
+            >
+              <Icon name="edit" size={15} stroke="var(--ink-4)" sw={1.9} />
+            </button>
           </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )
@@ -945,6 +1033,9 @@ export function IrisDetailScreen({
         </div>
       )}
 
+      {/* ── Flowering summary (primary averaged panel) ── */}
+      <FloweringSummary iris={iris} />
+
       {/* ── Colour definition ── */}
       <div style={{ marginTop: 22 }}>
         <ColourDefinitionCard iris={iris} />
@@ -971,7 +1062,7 @@ export function IrisDetailScreen({
           <SectionLabel>Notes</SectionLabel>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {sortedNotes.map((note, i) => (
-              <NoteRow key={note.id || `${note.d}-${i}`} note={note} />
+              <NoteRow key={note.id || `${note.d}-${i}`} note={note} onEdit={() => openNote(iris, note)} />
             ))}
           </div>
         </div>
@@ -1015,7 +1106,7 @@ export function IrisDetailScreen({
       <CrossesSection iris={iris} go={go} />
 
       {/* ── Flowering history ── */}
-      <FloweringHistory iris={iris} />
+      <FloweringHistory iris={iris} onEdit={(rec) => openFlowering(iris, rec)} />
     </div>
   )
 }
