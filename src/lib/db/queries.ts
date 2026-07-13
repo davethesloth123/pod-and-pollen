@@ -323,6 +323,12 @@ export function dbToEval(row: EvalRowDb): EvalRow {
     irisId: row.iris_id,
     id: row.id,
     year: row.eval_year ?? undefined,
+    scores: row.scores ?? undefined,
+    total: row.total ?? undefined,
+    rubric: row.rubric ?? undefined,
+    comments: row.comments ?? undefined,
+    date: isoDate(row.evaluated_at),
+    // Legacy 1–5 fields (older records)
     form: row.form ?? undefined,
     colour: row.colour ?? undefined,
     substance: row.substance ?? undefined,
@@ -330,15 +336,13 @@ export function dbToEval(row: EvalRowDb): EvalRow {
     vigour: row.vigour ?? undefined,
     avg: row.average ?? undefined,
     verdict: row.verdict ?? undefined,
-    comments: row.comments ?? undefined,
-    date: isoDate(row.evaluated_at),
   }
 }
 
 export interface NewEval {
   irisId: string; year?: number
-  form?: number; colour?: number; substance?: number; branching?: number; vigour?: number
-  avg?: number; verdict?: string; comments?: string
+  scores?: Record<string, number>; total?: number; rubric?: string
+  comments?: string
 }
 
 export async function fetchEvaluations(supabase: SupabaseClient, userId: string): Promise<EvalRow[]> {
@@ -358,19 +362,35 @@ export async function insertEvaluation(supabase: SupabaseClient, userId: string,
       user_id: userId,
       iris_id: input.irisId,
       eval_year: input.year ?? new Date().getFullYear(),
-      form: input.form ?? null,
-      colour: input.colour ?? null,
-      substance: input.substance ?? null,
-      branching: input.branching ?? null,
-      vigour: input.vigour ?? null,
-      average: input.avg ?? null,
-      verdict: input.verdict || null,
+      scores: input.scores ?? null,
+      total: input.total ?? null,
+      rubric: input.rubric ?? null,
       comments: input.comments || null,
     })
     .select()
     .single()
   if (error) throw error
   return dbToEval(data)
+}
+
+export interface EvalPatch { year?: number; scores?: Record<string, number>; total?: number; rubric?: string; comments?: string }
+
+export async function updateEvaluation(supabase: SupabaseClient, userId: string, id: string, patch: EvalPatch): Promise<EvalRow> {
+  const col: Record<string, unknown> = {}
+  if (patch.year !== undefined) col.eval_year = patch.year
+  if (patch.scores !== undefined) col.scores = patch.scores
+  if (patch.total !== undefined) col.total = patch.total
+  if (patch.rubric !== undefined) col.rubric = patch.rubric
+  if (patch.comments !== undefined) col.comments = patch.comments || null
+  const { data, error } = await supabase
+    .from('evaluations').update(col).eq('id', id).eq('user_id', userId).select().single()
+  if (error) throw error
+  return dbToEval(data)
+}
+
+export async function deleteEvaluation(supabase: SupabaseClient, userId: string, id: string): Promise<void> {
+  const { error } = await supabase.from('evaluations').delete().eq('id', id).eq('user_id', userId)
+  if (error) throw error
 }
 
 // ─── Crosses ──────────────────────────────────────────────────

@@ -160,8 +160,9 @@ export const STATUS: Record<string, { c: string; icon: string }> = {
 
 // ─── Latest evaluation ────────────────────────────────────────
 export function latestEval(iris: Iris): import('@/types').EvalRecord | undefined {
-  if (!iris.evaluations?.length) return undefined
-  return iris.evaluations[iris.evaluations.length - 1]
+  const evals = iris.evaluations
+  if (!evals?.length) return undefined
+  return [...evals].sort((a, b) => (b.year ?? 0) - (a.year ?? 0) || (b.date || '').localeCompare(a.date || ''))[0]
 }
 
 // Resolve a cross's CURRENT parent names from its ids (falls back to the

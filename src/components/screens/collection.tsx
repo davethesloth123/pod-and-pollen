@@ -5,6 +5,7 @@ import {
   IrisCard, SectionLabel, Chip, Segmented, btnReset, EmptyState,
 } from '@/components/ui/shared'
 import { useData } from '@/lib/data-context'
+import { latestEval } from '@/lib/data'
 import type { Iris } from '@/types'
 
 // ─── Types ────────────────────────────────────────────────────
@@ -100,7 +101,13 @@ const SORTS: { v: string; label: string }[] = [
   { v: 'height', label: 'Height' },
   { v: 'rebloom', label: 'Rebloomer' },
   { v: 'breeder', label: 'Breeder' },
+  { v: 'evalscore', label: 'Evaluation score' },
 ]
+
+// Latest evaluation total (BIS) for sorting; undefined if never evaluated.
+function evalScore(iris: Iris): number | undefined {
+  return latestEval(iris)?.total
+}
 
 function sortIrises(list: Iris[], sortBy: string): Iris[] {
   const byName = (a: Iris, b: Iris) => a.name.localeCompare(b.name, undefined, { numeric: true })
@@ -118,6 +125,8 @@ function sortIrises(list: Iris[], sortBy: string): Iris[] {
       return arr.sort((a, b) => (b.rebloom ? 1 : 0) - (a.rebloom ? 1 : 0) || byName(a, b))
     case 'breeder':
       return arr.sort((a, b) => (a.breeder ?? '').localeCompare(b.breeder ?? '') || byName(a, b))
+    case 'evalscore':
+      return arr.sort((a, b) => (evalScore(b) ?? -1) - (evalScore(a) ?? -1) || byName(a, b))
     default:
       return arr.sort(byName)
   }

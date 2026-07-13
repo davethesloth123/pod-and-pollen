@@ -3,12 +3,13 @@ import { useState } from 'react'
 import { Icon } from '@/components/ui/icon'
 import { IrisBloom } from '@/components/ui/iris-bloom'
 import {
-  IrisThumb, SectionLabel, RatingDots, LifecycleRail,
+  IrisThumb, SectionLabel, LifecycleRail,
   btnReset, StatusBadge,
 } from '@/components/ui/shared'
 import { PAL, lifecycleFor, latestEval } from '@/lib/data'
 import { useData } from '@/lib/data-context'
 import { fmtDate, fmtHeight, daysBetweenIso, avgDayMonth } from '@/lib/format'
+import { rubricById } from '@/lib/rubric'
 import type { Iris, IrisNote, FloweringRecord, LifecycleStep } from '@/types'
 
 // ─── Types ────────────────────────────────────────────────────
@@ -290,134 +291,64 @@ function EvalCard({
   const ev = latestEval(iris)
   if (!ev) return null
 
+  const rubric = rubricById(ev.rubric)
+  const isBis = ev.total !== undefined && !!ev.scores
+  const evals = iris.evaluations || []
+  const totals = evals.map(e => e.total).filter((v): v is number => v !== undefined)
+  const avgTotal = totals.length ? Math.round(totals.reduce((a, b) => a + b, 0) / totals.length) : undefined
+
   return (
-    <div
-      style={{
-        margin: '0 18px',
-        padding: 14,
-        background: 'var(--surface)',
-        borderRadius: 16,
-        border: '1px solid var(--line)',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: 12,
-        }}
-      >
+    <div style={{ margin: '0 18px', padding: 14, background: 'var(--surface)', borderRadius: 16, border: '1px solid var(--line)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <SectionLabel>Latest evaluation</SectionLabel>
-        <button
-          onClick={() => openEvalHistory(iris)}
-          style={{
-            ...btnReset,
-            cursor: 'pointer',
-            fontSize: 13,
-            color: 'var(--accent)',
-            fontWeight: 600,
-          }}
-        >
+        <button onClick={() => openEvalHistory(iris)} style={{ ...btnReset, cursor: 'pointer', fontSize: 13, color: 'var(--accent)', fontWeight: 600 }}>
           History
         </button>
       </div>
 
-      {ev.year && (
-        <div style={{ fontSize: 12.5, color: 'var(--ink-4)', marginBottom: 10 }}>
-          {ev.year}{ev.date ? ` · ${ev.date}` : ''}
-        </div>
-      )}
-
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: 10,
-          marginBottom: 10,
-        }}
-      >
-        {ev.form !== undefined && (
-          <div>
-            <div style={{ fontSize: 11.5, color: 'var(--ink-4)', marginBottom: 4 }}>Form</div>
-            <RatingDots value={ev.form} max={5} readOnly size={22} />
-          </div>
-        )}
-        {ev.colour !== undefined && (
-          <div>
-            <div style={{ fontSize: 11.5, color: 'var(--ink-4)', marginBottom: 4 }}>Colour</div>
-            <RatingDots value={ev.colour} max={5} readOnly size={22} />
-          </div>
-        )}
-        {ev.substance !== undefined && (
-          <div>
-            <div style={{ fontSize: 11.5, color: 'var(--ink-4)', marginBottom: 4 }}>Substance</div>
-            <RatingDots value={ev.substance} max={5} readOnly size={22} />
-          </div>
-        )}
-        {ev.branching !== undefined && (
-          <div>
-            <div style={{ fontSize: 11.5, color: 'var(--ink-4)', marginBottom: 4 }}>Branching</div>
-            <RatingDots value={ev.branching} max={5} readOnly size={22} />
-          </div>
-        )}
-        {ev.vigour !== undefined && (
-          <div>
-            <div style={{ fontSize: 11.5, color: 'var(--ink-4)', marginBottom: 4 }}>Vigour</div>
-            <RatingDots value={ev.vigour} max={5} readOnly size={22} />
-          </div>
-        )}
-        {ev.avg !== undefined && (
-          <div>
-            <div style={{ fontSize: 11.5, color: 'var(--ink-4)', marginBottom: 4 }}>Overall</div>
-            <div
-              style={{
-                fontFamily: 'Bricolage Grotesque, system-ui, sans-serif',
-                fontWeight: 700,
-                fontSize: 20,
-                color: 'var(--accent)',
-              }}
-            >
-              {ev.avg.toFixed(1)}
+      {isBis ? (
+        <>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, marginBottom: 12 }}>
+            <div>
+              <div style={{ fontSize: 12.5, color: 'var(--ink-4)', marginBottom: 2 }}>{ev.year}</div>
+              <div style={{ fontFamily: 'Bricolage Grotesque, system-ui, sans-serif', fontWeight: 700, fontSize: 30, color: 'var(--accent)', lineHeight: 1 }}>
+                {ev.total}<span style={{ fontSize: 15, color: 'var(--ink-4)', fontWeight: 600 }}> / {rubric.total}</span>
+              </div>
             </div>
+            {avgTotal !== undefined && totals.length > 1 && (
+              <div style={{ paddingBottom: 2 }}>
+                <div style={{ fontSize: 11.5, color: 'var(--ink-4)', marginBottom: 2 }}>Avg ({totals.length} yrs)</div>
+                <div style={{ fontFamily: 'Bricolage Grotesque, system-ui, sans-serif', fontWeight: 700, fontSize: 18, color: 'var(--ink-2)', lineHeight: 1 }}>
+                  {avgTotal}<span style={{ fontSize: 12, color: 'var(--ink-4)', fontWeight: 600 }}> / {rubric.total}</span>
+                </div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
-
-      {ev.verdict && (
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 5,
-            padding: '4px 11px',
-            borderRadius: 999,
-            background: 'var(--green-bg)',
-            color: 'var(--green)',
-            border: '1px solid var(--green-line)',
-            fontSize: 12,
-            fontWeight: 700,
-            letterSpacing: 0.3,
-            textTransform: 'uppercase',
-            marginBottom: ev.comments ? 10 : 0,
-          }}
-        >
-          <Icon name="tag" size={12} stroke="var(--green)" sw={2} />
-          {ev.verdict}
-        </div>
+          {ev.scores && (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: ev.comments ? 10 : 0 }}>
+              {rubric.categories.filter(c => ev.scores![c.key] !== undefined).map(c => (
+                <span key={c.key} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 999, fontSize: 12, fontWeight: 600, background: 'var(--surface-2)', color: 'var(--ink-2)', border: '1px solid var(--line)' }}>
+                  {c.label.split(' ')[0]} <span style={{ color: 'var(--accent)', fontWeight: 700 }}>{ev.scores![c.key]}/{c.max}</span>
+                </span>
+              ))}
+            </div>
+          )}
+        </>
+      ) : (
+        // Legacy 1–5 record
+        <>
+          {ev.year && <div style={{ fontSize: 12.5, color: 'var(--ink-4)', marginBottom: 10 }}>{ev.year}{ev.date ? ` · ${ev.date}` : ''}</div>}
+          {ev.avg !== undefined && (
+            <div style={{ marginBottom: ev.comments ? 10 : 0 }}>
+              <div style={{ fontSize: 11.5, color: 'var(--ink-4)', marginBottom: 4 }}>Legacy score</div>
+              <div style={{ fontFamily: 'Bricolage Grotesque, system-ui, sans-serif', fontWeight: 700, fontSize: 20, color: 'var(--accent)' }}>{ev.avg.toFixed(1)} / 5</div>
+            </div>
+          )}
+        </>
       )}
 
       {ev.comments && (
-        <div
-          style={{
-            fontSize: 13.5,
-            color: 'var(--ink-2)',
-            lineHeight: 1.5,
-            marginTop: 8,
-          }}
-        >
-          {ev.comments}
-        </div>
+        <div style={{ fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 1.5, marginTop: 8 }}>{ev.comments}</div>
       )}
     </div>
   )

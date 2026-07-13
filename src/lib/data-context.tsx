@@ -7,7 +7,7 @@ import {
   fetchIrises, insertIris, type NewIris,
   fetchNotes, insertNote, type NewNote, type IrisNoteRow,
   fetchFlowering, upsertFlowering, type NewFlowering, type FloweringRow,
-  fetchEvaluations, insertEvaluation, type NewEval, type EvalRow,
+  fetchEvaluations, insertEvaluation, updateEvaluation as dbUpdateEvaluation, deleteEvaluation as dbDeleteEvaluation, type NewEval, type EvalRow, type EvalPatch,
   fetchCrosses, insertCross, deleteCross as dbDeleteCross, type NewCross,
   updateIris as dbUpdateIris, deleteIris as dbDeleteIris, type IrisPatch,
   updateLocation as dbUpdateLocation, deleteLocation as dbDeleteLocation, type LocationPatch,
@@ -40,6 +40,8 @@ interface DataContextValue {
   addNote: (input: NewNote) => Promise<void>
   addFlowering: (input: NewFlowering & { setStatus?: string }) => Promise<void>
   addEvaluation: (input: NewEval) => Promise<void>
+  updateEvaluation: (id: string, patch: EvalPatch) => Promise<void>
+  deleteEvaluation: (id: string) => Promise<void>
   addCross: (input: NewCross) => Promise<void>
   deleteCross: (id: string) => Promise<void>
   seedBatchFor: (crossId: string) => SeedBatch | undefined
@@ -226,6 +228,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setEvals(prev => [rec, ...prev])
   }, [supabase, requireUser])
 
+  const updateEvaluation = useCallback(async (id: string, patch: EvalPatch) => {
+    const user = await requireUser()
+    const rec = await dbUpdateEvaluation(supabase, user.id, id, patch)
+    setEvals(prev => prev.map(e => e.id === id ? rec : e))
+  }, [supabase, requireUser])
+
+  const deleteEvaluation = useCallback(async (id: string) => {
+    const user = await requireUser()
+    await dbDeleteEvaluation(supabase, user.id, id)
+    setEvals(prev => prev.filter(e => e.id !== id))
+  }, [supabase, requireUser])
+
   const addCross = useCallback(async (input: NewCross) => {
     const user = await requireUser()
     // Guard against duplicate cross codes within the same season
@@ -372,12 +386,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<DataContextValue>(() => ({
     ready, loadError, userId, locations, irises, crosses, recent, region, setRegion, units, byId, crossStats,
-    addLocation, addIris, addNote, addFlowering, addEvaluation, addCross, deleteCross,
+    addLocation, addIris, addNote, addFlowering, addEvaluation, updateEvaluation, deleteEvaluation, addCross, deleteCross,
     seedBatchFor, saveSeedBatch, addSeedlings,
     updateIris, deleteIris, setStatus, toggleFav, updateLocation, deleteLocation, deleteNote, updateNote,
     refresh: load,
   }), [ready, loadError, userId, locations, irises, crosses, recent, region, setRegion, units, byId, crossStats,
-    addLocation, addIris, addNote, addFlowering, addEvaluation, addCross, deleteCross,
+    addLocation, addIris, addNote, addFlowering, addEvaluation, updateEvaluation, deleteEvaluation, addCross, deleteCross,
     seedBatchFor, saveSeedBatch, addSeedlings,
     updateIris, deleteIris, setStatus, toggleFav, updateLocation, deleteLocation, deleteNote, updateNote, load])
 

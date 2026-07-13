@@ -545,8 +545,9 @@ export function AppShell() {
       <EvaluationFlow
         open={sheet?.kind === 'evaluate'}
         iris={sheet?.iris}
+        editRecord={sheet?.editRecord}
         onClose={closeSheet}
-        onSaved={(r: { avg?: number }) => { closeSheet(); toast(`Evaluation saved · ${r.avg ? r.avg.toFixed(1) : '—'} avg`) }}
+        onSaved={(r: { total?: number }) => { closeSheet(); toast(sheet?.editRecord ? 'Evaluation updated' : `Evaluation saved · ${r.total ?? '—'} / 100`) }}
       />
 
       {/* Evaluation history */}
@@ -554,7 +555,7 @@ export function AppShell() {
         open={sheet?.kind === 'evalHistory'}
         iris={sheet?.iris}
         onClose={closeSheet}
-        onEdit={(rec: any) => setSheet({ kind: 'evaluate', iris: sheet?.iris, edit: rec })}
+        onEdit={(rec: any) => setSheet({ kind: 'evaluate', iris: sheet?.iris, editRecord: rec })}
       />
 
       {/* Record flowering */}

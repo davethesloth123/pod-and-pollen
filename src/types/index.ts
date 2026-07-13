@@ -42,15 +42,20 @@ export interface IrisPhoto {
 export interface EvalRecord {
   id?: string
   year?: number
+  // BIS scorecard: per-category scores keyed by rubric category, plus the total
+  scores?: Record<string, number>
+  total?: number
+  rubric?: string        // rubric id (e.g. 'bis-uk')
+  comments?: string
+  date?: string
+  // Legacy fields (older 1–5 evaluations) — read-only for display of old data
   form?: number
   colour?: number
   substance?: number
   branching?: number
   vigour?: number
   avg?: number
-  verdict?: string       // Retain | Discard | Watch | Name
-  comments?: string
-  date?: string
+  verdict?: string
 }
 
 export interface Iris {

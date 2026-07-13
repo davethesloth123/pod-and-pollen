@@ -79,6 +79,9 @@ export interface EvalRowDb {
   id: string
   iris_id: string
   eval_year: number | null
+  scores: Record<string, number> | null
+  total: number | null
+  rubric: string | null
   form: number | null
   colour: number | null
   substance: number | null
