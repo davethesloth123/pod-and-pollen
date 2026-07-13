@@ -92,9 +92,41 @@ function CrossBanner({
 }
 
 // ─── Collection screen ────────────────────────────────────────
+const SORTS: { v: string; label: string }[] = [
+  { v: 'name', label: 'Name (A–Z)' },
+  { v: 'created', label: 'Recently created' },
+  { v: 'cls', label: 'Classification' },
+  { v: 'colorType', label: 'Colour type' },
+  { v: 'height', label: 'Height' },
+  { v: 'rebloom', label: 'Rebloomer' },
+  { v: 'breeder', label: 'Breeder' },
+]
+
+function sortIrises(list: Iris[], sortBy: string): Iris[] {
+  const byName = (a: Iris, b: Iris) => a.name.localeCompare(b.name, undefined, { numeric: true })
+  const arr = [...list]
+  switch (sortBy) {
+    case 'created':
+      return arr.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? '') || byName(a, b))
+    case 'cls':
+      return arr.sort((a, b) => (a.cls ?? '').localeCompare(b.cls ?? '') || byName(a, b))
+    case 'colorType':
+      return arr.sort((a, b) => (a.colorType ?? '').localeCompare(b.colorType ?? '') || byName(a, b))
+    case 'height':
+      return arr.sort((a, b) => (b.heightCm ?? -1) - (a.heightCm ?? -1) || byName(a, b))
+    case 'rebloom':
+      return arr.sort((a, b) => (b.rebloom ? 1 : 0) - (a.rebloom ? 1 : 0) || byName(a, b))
+    case 'breeder':
+      return arr.sort((a, b) => (a.breeder ?? '').localeCompare(b.breeder ?? '') || byName(a, b))
+    default:
+      return arr.sort(byName)
+  }
+}
+
 export function CollectionScreen({ go, wide, openAdd, params }: CollectionScreenProps) {
   const { irises, crosses } = useData()
   const [filter, setFilter] = useState('All')
+  const [sortBy, setSortBy] = useState('name')
   const [view, setView] = useState<'grid' | 'list'>('grid')
   const [crossFilter, setCrossFilter] = useState(params?.cross)
 
@@ -108,6 +140,9 @@ export function CollectionScreen({ go, wide, openAdd, params }: CollectionScreen
   else if (filter === 'Named Varieties') list = list.filter((i) => i.kind === 'Variety')
   else if (filter === 'Seedlings') list = list.filter((i) => i.kind === 'Seedling')
   else if (filter === 'Favourites') list = list.filter((i) => i.fav)
+
+  // Sort (default alphabetical)
+  list = sortIrises(list, sortBy)
 
   // Empty collection (no irises at all)
   if (irises.length === 0) {
@@ -175,6 +210,26 @@ export function CollectionScreen({ go, wide, openAdd, params }: CollectionScreen
             {f}
           </Chip>
         ))}
+      </div>
+
+      {/* Sort row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+        <span style={{ fontSize: 13, color: 'var(--ink-4)', fontWeight: 600, flexShrink: 0 }}>Sort</span>
+        <div style={{ position: 'relative', flex: 1, maxWidth: 220 }}>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            style={{
+              width: '100%', appearance: 'none', cursor: 'pointer',
+              padding: '9px 32px 9px 12px', borderRadius: 10, border: '1px solid var(--line)',
+              background: 'var(--surface)', fontSize: 13.5, color: 'var(--ink)', fontWeight: 500,
+              fontFamily: 'Lexend, sans-serif', outline: 'none',
+            }}
+          >
+            {SORTS.map((s) => (<option key={s.v} value={s.v}>{s.label}</option>))}
+          </select>
+          <Icon name="chevron" size={15} stroke="var(--ink-3)" style={{ position: 'absolute', right: 11, top: '50%', transform: 'translateY(-50%) rotate(90deg)', pointerEvents: 'none' }} />
+        </div>
       </div>
 
       {/* Cross filter banner */}

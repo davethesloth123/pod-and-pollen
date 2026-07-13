@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/shared'
 import { PAL, lifecycleFor, latestEval } from '@/lib/data'
 import { useData } from '@/lib/data-context'
-import { fmtDate, fmtHeight, daysBetweenIso } from '@/lib/format'
+import { fmtDate, fmtHeight, daysBetweenIso, avgDayMonth } from '@/lib/format'
 import type { Iris, IrisNote, FloweringRecord, LifecycleStep } from '@/types'
 
 // ─── Types ────────────────────────────────────────────────────
@@ -639,6 +639,7 @@ function FloweringSummary({ iris }: { iris: Iris }) {
   const history = iris.floweringHistory
   if (!history || history.length === 0) return null
 
+  const avgFirst = avgDayMonth(history.map(r => r.first), region)
   const periodDays = history.map(r => daysBetweenIso(r.first, r.last)).filter((v): v is number => v !== undefined)
   const stems = history.map(r => r.stems).filter((v): v is number => v !== undefined)
   const buds = history.map(r => r.buds).filter((v): v is number => v !== undefined)
@@ -656,6 +657,7 @@ function FloweringSummary({ iris }: { iris: Iris }) {
   const avgBloomWidth = avg(bloomWidths)
 
   const rows = ([
+    avgFirst !== undefined ? { label: 'Avg. first flower', value: avgFirst } : null,
     avgPeriod !== undefined ? { label: 'Avg. flowering period', value: `${Math.round(avgPeriod)} days` } : null,
     avgStems !== undefined ? { label: 'Avg. stems per plant', value: avgStems.toFixed(1) } : null,
     avgBuds !== undefined ? { label: 'Avg. bud count per stem', value: avgBuds.toFixed(1) } : null,
@@ -1010,6 +1012,7 @@ export function IrisDetailScreen({
             iris.planted ? { label: 'Planted', value: iris.planted } : null,
             (iris.height && iris.height !== '—') ? { label: 'Height', value: Number.isFinite(parseInt(iris.height, 10)) ? fmtH(parseInt(iris.height, 10)) : iris.height } : null,
             (iris.season && iris.season !== '—') ? { label: 'Flowering', value: iris.season } : null,
+            iris.rebloom ? { label: 'Rebloomer', value: 'Yes' } : null,
             (iris.fragrance && iris.fragrance !== '—') ? { label: 'Fragrance', value: iris.fragrance } : null,
             iris.breeder ? { label: 'Breeder', value: iris.breeder } : null,
             iris.yearReleased ? { label: 'Year released', value: String(iris.yearReleased) } : null,

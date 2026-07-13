@@ -8,7 +8,7 @@ import {
   fetchNotes, insertNote, type NewNote, type IrisNoteRow,
   fetchFlowering, upsertFlowering, type NewFlowering, type FloweringRow,
   fetchEvaluations, insertEvaluation, type NewEval, type EvalRow,
-  fetchCrosses, insertCross, type NewCross,
+  fetchCrosses, insertCross, deleteCross as dbDeleteCross, type NewCross,
   updateIris as dbUpdateIris, deleteIris as dbDeleteIris, type IrisPatch,
   updateLocation as dbUpdateLocation, deleteLocation as dbDeleteLocation, type LocationPatch,
   deleteNote as dbDeleteNote, updateNote as dbUpdateNote, type NotePatch,
@@ -41,6 +41,7 @@ interface DataContextValue {
   addFlowering: (input: NewFlowering & { setStatus?: string }) => Promise<void>
   addEvaluation: (input: NewEval) => Promise<void>
   addCross: (input: NewCross) => Promise<void>
+  deleteCross: (id: string) => Promise<void>
   seedBatchFor: (crossId: string) => SeedBatch | undefined
   saveSeedBatch: (crossId: string, patch: SeedBatchPatch) => Promise<void>
   addSeedlings: (rows: NewSeedling[]) => Promise<void>
@@ -236,6 +237,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setRawCrosses(prev => [cross, ...prev])
   }, [supabase, requireUser, rawCrosses])
 
+  const deleteCross = useCallback(async (id: string) => {
+    const user = await requireUser()
+    await dbDeleteCross(supabase, user.id, id)
+    setRawCrosses(prev => prev.filter(c => c.id !== id))
+    // Detach any seedlings that referenced this cross (their records remain)
+    setRawIrises(prev => prev.map(i => i.crossId === id ? { ...i, crossId: undefined, cross: undefined } : i))
+    setSeedBatches(prev => prev.filter(b => b.cross !== id))
+  }, [supabase, requireUser])
+
   const seedBatchFor = useCallback((crossId: string) => seedBatches.find(b => b.cross === crossId), [seedBatches])
 
   const saveSeedBatch = useCallback(async (crossId: string, patch: SeedBatchPatch) => {
@@ -362,12 +372,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<DataContextValue>(() => ({
     ready, loadError, userId, locations, irises, crosses, recent, region, setRegion, units, byId, crossStats,
-    addLocation, addIris, addNote, addFlowering, addEvaluation, addCross,
+    addLocation, addIris, addNote, addFlowering, addEvaluation, addCross, deleteCross,
     seedBatchFor, saveSeedBatch, addSeedlings,
     updateIris, deleteIris, setStatus, toggleFav, updateLocation, deleteLocation, deleteNote, updateNote,
     refresh: load,
   }), [ready, loadError, userId, locations, irises, crosses, recent, region, setRegion, units, byId, crossStats,
-    addLocation, addIris, addNote, addFlowering, addEvaluation, addCross,
+    addLocation, addIris, addNote, addFlowering, addEvaluation, addCross, deleteCross,
     seedBatchFor, saveSeedBatch, addSeedlings,
     updateIris, deleteIris, setStatus, toggleFav, updateLocation, deleteLocation, deleteNote, updateNote, load])
 

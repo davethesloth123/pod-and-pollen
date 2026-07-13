@@ -47,6 +47,8 @@ export interface IrisRow {
   cross_id: string | null
   seed_batch_id: string | null
   generation: string | null
+  rebloom: boolean | null
+  created_at: string | null
   // Joined via select('*, location:locations(name)')
   location?: { name: string | null } | null
 }

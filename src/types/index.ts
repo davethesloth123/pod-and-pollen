@@ -65,9 +65,12 @@ export interface Iris {
 
   // Appearance
   colour?: string
-  height?: string
+  height?: string        // formatted for display (e.g. "95 cm")
+  heightCm?: number      // raw canonical cm, for sorting
   season?: string
   fragrance?: string
+  rebloom?: boolean      // reblooming (remontant)
+  createdAt?: string     // ISO timestamp, for "recently created" sort
 
   // Color definition
   colorDef?: ColorDef

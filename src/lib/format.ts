@@ -49,6 +49,29 @@ export function displayFromCm(cm: number, region: Region): number {
   return region === 'US' ? Math.round(cm / CM_PER_IN) : Math.round(cm)
 }
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+// Average first-flower date across years, shown as day+month (no year, since it
+// spans seasons). Averages the day-of-year, which is safe for spring blooms.
+export function avgDayMonth(isoDates: (string | null | undefined)[], region: Region): string | undefined {
+  const doys: number[] = []
+  for (const value of isoDates) {
+    if (!value) continue
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value))
+    if (!m) continue
+    const dt = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+    if (isNaN(dt.getTime())) continue
+    const startOfYear = new Date(dt.getFullYear(), 0, 0)
+    doys.push(Math.round((dt.getTime() - startOfYear.getTime()) / 86400000))
+  }
+  if (!doys.length) return undefined
+  const avgDoy = Math.round(doys.reduce((a, b) => a + b, 0) / doys.length)
+  const ref = new Date(2001, 0, avgDoy) // 2001 is non-leap; normalises doy → month/day
+  const day = ref.getDate()
+  const mon = MONTHS[ref.getMonth()]
+  return region === 'US' ? `${mon} ${day}` : `${day} ${mon}`
+}
+
 // Whole days between two ISO dates (first bloom → last bloom), or undefined
 // if either is missing/invalid/negative.
 export function daysBetweenIso(a: string | null | undefined, b: string | null | undefined): number | undefined {

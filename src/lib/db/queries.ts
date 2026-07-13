@@ -85,8 +85,11 @@ export function dbToIris(row: IrisRow): Iris {
     fav: row.fav ?? false,
     colour: row.colour ?? undefined,
     height: row.height_cm != null ? `${row.height_cm} cm` : undefined,
+    heightCm: row.height_cm ?? undefined,
     season: row.season ?? undefined,
     fragrance: row.fragrance ?? undefined,
+    rebloom: row.rebloom ?? false,
+    createdAt: row.created_at ?? undefined,
     colorDef: hasColorDef ? {
       standards: row.color_standards ?? undefined,
       falls: row.color_falls ?? undefined,
@@ -133,6 +136,7 @@ export interface NewIris {
   height?: number
   season?: string
   fragrance?: string
+  rebloom?: boolean
   breeder?: string
   yearReleased?: number
   colorStandards?: string
@@ -172,6 +176,7 @@ export async function insertIris(supabase: SupabaseClient, userId: string, input
       height_cm: input.height ?? null,
       season: input.season || null,
       fragrance: input.fragrance || null,
+      rebloom: input.rebloom ?? false,
       breeder: input.breeder || null,
       year_released: input.yearReleased ?? null,
       color_standards: input.colorStandards || null,
@@ -531,7 +536,7 @@ export interface IrisPatch {
   status?: string; fav?: boolean; locationId?: string | null; gridRef?: string
   plantedDate?: string; podParent?: string; pollenParent?: string
   podParentId?: string | null; pollenParentId?: string | null
-  height?: number | null; season?: string; fragrance?: string; breeder?: string; yearReleased?: number | null
+  height?: number | null; season?: string; fragrance?: string; rebloom?: boolean; breeder?: string; yearReleased?: number | null
   colorStandards?: string; colorFalls?: string; colorBeard?: string; colorStyleArms?: string
   firstEverFlower?: string
 }
@@ -541,7 +546,7 @@ const IRIS_COL_MAP: Record<string, string> = {
   status: 'status', fav: 'fav', locationId: 'location_id', gridRef: 'grid_ref',
   plantedDate: 'planted_date', podParent: 'pod_parent', pollenParent: 'pollen_parent',
   podParentId: 'pod_parent_id', pollenParentId: 'pollen_parent_id',
-  height: 'height_cm', season: 'season', fragrance: 'fragrance', breeder: 'breeder',
+  height: 'height_cm', season: 'season', fragrance: 'fragrance', rebloom: 'rebloom', breeder: 'breeder',
   yearReleased: 'year_released', colorStandards: 'color_standards', colorFalls: 'color_falls',
   colorBeard: 'color_beard', colorStyleArms: 'color_style_arms', firstEverFlower: 'first_ever_flower',
 }
@@ -563,6 +568,11 @@ export async function updateIris(supabase: SupabaseClient, userId: string, id: s
 
 export async function deleteIris(supabase: SupabaseClient, userId: string, id: string): Promise<void> {
   const { error } = await supabase.from('irises').delete().eq('id', id).eq('user_id', userId)
+  if (error) throw error
+}
+
+export async function deleteCross(supabase: SupabaseClient, userId: string, id: string): Promise<void> {
+  const { error } = await supabase.from('crosses').delete().eq('id', id).eq('user_id', userId)
   if (error) throw error
 }
 

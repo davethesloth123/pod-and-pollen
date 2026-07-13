@@ -60,6 +60,7 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross, editIris }: A
   const [colorStyleArms, setColorStyleArms] = useState('')
   const [height, setHeight] = useState('')
   const [floweringPeriod, setFloweringPeriod] = useState('')
+  const [rebloom, setRebloom] = useState(false)
   const [fragranceLevel, setFragranceLevel] = useState('')
   const [fragranceType, setFragranceType] = useState('')
   const [breeder, setBreeder] = useState('')
@@ -93,6 +94,7 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross, editIris }: A
       setHeight(Number.isFinite(cm) ? String(units === 'in' ? Math.round(cm / CM_PER_IN) : cm) : '')
     }
     setFloweringPeriod(editIris.season || '')
+    setRebloom(!!editIris.rebloom)
     const fr = (editIris.fragrance || '').split(' · ')
     setFragranceLevel(fr[0] || '')
     setFragranceType(fr[1] || '')
@@ -124,6 +126,7 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross, editIris }: A
     setColorStyleArms('')
     setHeight('')
     setFloweringPeriod('')
+    setRebloom(false)
     setFragranceLevel('')
     setFragranceType('')
     setBreeder('')
@@ -152,6 +155,10 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross, editIris }: A
       const isVariety = kind === 'Variety'
       const fragrance = isVariety ? [fragranceLevel, fragranceType].filter(Boolean).join(' · ') : ''
       const heightCm = height ? (units === 'in' ? Math.round(Number(height) * CM_PER_IN) : Number(height)) : null
+      // Use the visible text so free-typed parents (not in the collection, common
+      // for named varieties) are saved even when nothing was picked from the list.
+      const podName = (podParent || podSearch).trim()
+      const pollenName = (pollenParent || pollenSearch).trim()
       const parentId = (n: string) => irises.find(i => i.name === n.trim())?.id ?? null
       if (editing && editIris) {
         // Edit: send '' to clear fields; updateIris maps '' → null
@@ -160,15 +167,16 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross, editIris }: A
           kind,
           classification: cls,
           colorType: isVariety ? colourType : undefined,
-          podParent: podParent.trim(),
-          pollenParent: pollenParent.trim(),
-          podParentId: parentId(podParent),
-          pollenParentId: parentId(pollenParent),
+          podParent: podName,
+          pollenParent: pollenName,
+          podParentId: parentId(podName),
+          pollenParentId: parentId(pollenName),
           locationId: loc || null,
           gridRef: gridRef.trim(),
           plantedDate: year.trim(),
           height: isVariety ? heightCm : undefined,
           season: isVariety ? floweringPeriod : undefined,
+          rebloom: isVariety ? rebloom : undefined,
           fragrance: isVariety ? fragrance : undefined,
           breeder: isVariety ? breeder.trim() : undefined,
           yearReleased: isVariety ? (yearReleased ? Number(yearReleased) : null) : undefined,
@@ -183,15 +191,16 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross, editIris }: A
           kind,
           classification: cls,
           colorType: isVariety ? colourType : undefined,
-          podParent: podParent.trim() || undefined,
-          pollenParent: pollenParent.trim() || undefined,
-          podParentId: parentId(podParent) ?? undefined,
-          pollenParentId: parentId(pollenParent) ?? undefined,
+          podParent: podName || undefined,
+          pollenParent: pollenName || undefined,
+          podParentId: parentId(podName) ?? undefined,
+          pollenParentId: parentId(pollenName) ?? undefined,
           locationId: loc || null,
           gridRef: gridRef.trim() || undefined,
           plantedDate: year.trim() || undefined,
           height: isVariety && heightCm ? heightCm : undefined,
           season: isVariety ? floweringPeriod || undefined : undefined,
+          rebloom: isVariety ? rebloom : undefined,
           fragrance: fragrance || undefined,
           breeder: isVariety ? breeder.trim() || undefined : undefined,
           yearReleased: isVariety && yearReleased ? Number(yearReleased) : undefined,
@@ -327,6 +336,19 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross, editIris }: A
             </select>
             <Icon name="chevron" size={16} stroke="var(--ink-3)" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%) rotate(90deg)', pointerEvents: 'none' }} />
           </div>
+        </div>
+      </div>
+      <div>
+        <label style={labelStyle}>REBLOOMER</label>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {[{ v: true, label: 'Yes' }, { v: false, label: 'No' }].map(o => (
+            <button key={o.label} onClick={() => setRebloom(o.v)} style={{
+              ...btnReset, flex: 1, padding: '11px', borderRadius: 12, fontSize: 14.5, fontWeight: 600, cursor: 'pointer',
+              background: rebloom === o.v ? 'var(--accent)' : 'var(--surface)',
+              color: rebloom === o.v ? '#fff' : 'var(--ink-2)',
+              border: `1px solid ${rebloom === o.v ? 'var(--accent)' : 'var(--line)'}`, transition: 'all .15s',
+            }}>{o.label}</button>
+          ))}
         </div>
       </div>
       <div>

@@ -159,6 +159,22 @@ export function CrossesScreen({ go, wide, openAdd, openNewCross }: {
         </p>
       </div>
 
+      {/* Record new cross — primary action at the top */}
+      <div style={{ padding: '0 18px 16px' }}>
+        <button
+          onClick={openNewCross}
+          style={{
+            ...btnReset, cursor: 'pointer', width: '100%',
+            borderRadius: 14, padding: '14px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9,
+            background: 'var(--accent)', color: '#fff', fontSize: 15, fontWeight: 600,
+          }}
+        >
+          <Icon name="plus" size={18} stroke="#fff" sw={2.2} />
+          Record new cross
+        </button>
+      </div>
+
       {/* Stats card */}
       <div style={{ margin: '0 18px 18px', background: 'var(--surface)', borderRadius: 16, border: '1px solid var(--line)', padding: '16px', boxShadow: 'var(--shadow-sm)' }}>
         <div style={{ display: 'flex', gap: 0 }}>
@@ -208,22 +224,7 @@ export function CrossesScreen({ go, wide, openAdd, openNewCross }: {
         )}
       </div>
 
-      {/* Add cross button */}
-      <div style={{ padding: '16px 18px 32px' }}>
-        <button
-          onClick={openNewCross}
-          style={{
-            ...btnReset, cursor: 'pointer', width: '100%',
-            border: '1.5px dashed var(--line-2)', borderRadius: 16, padding: '15px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9,
-            color: 'var(--ink-3)', fontSize: 14.5, fontWeight: 600,
-            background: 'var(--surface-2)',
-          }}
-        >
-          <Icon name="plus" size={18} stroke="var(--ink-3)" sw={2} />
-          Record new cross
-        </button>
-      </div>
+      <div style={{ height: 24 }} />
     </div>
   )
 }
@@ -235,7 +236,8 @@ export function CrossDetailScreen({ id, go, wide, openAddSeedlings }: {
   wide?: boolean
   openAddSeedlings?: (cross: Cross) => void
 }) {
-  const { crosses, irises, crossStats } = useData() // CrossDetailScreen
+  const { crosses, irises, crossStats, deleteCross } = useData() // CrossDetailScreen
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const cross = crosses.find(c => c.id === id)
 
   if (!cross) {
@@ -413,7 +415,7 @@ export function CrossDetailScreen({ id, go, wide, openAddSeedlings }: {
       </div>
 
       {/* Add seedlings (single, central) */}
-      <div style={{ padding: '20px 18px 32px', display: 'flex', justifyContent: 'center' }}>
+      <div style={{ padding: '20px 18px 12px', display: 'flex', justifyContent: 'center' }}>
         <button
           onClick={() => openAddSeedlings && openAddSeedlings(cross)}
           style={{
@@ -426,6 +428,29 @@ export function CrossDetailScreen({ id, go, wide, openAddSeedlings }: {
           <Icon name="sprout" size={17} stroke="#fff" sw={2.2} />
           Add seedlings
         </button>
+      </div>
+
+      {/* Delete cross */}
+      <div style={{ padding: '4px 18px 36px', display: 'flex', justifyContent: 'center' }}>
+        {!confirmDelete ? (
+          <button
+            onClick={() => setConfirmDelete(true)}
+            style={{ ...btnReset, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 16px', borderRadius: 999, border: '1px solid var(--rose-line)', background: 'var(--rose-bg)', color: 'var(--rose)', fontSize: 13.5, fontWeight: 600 }}
+          >
+            <Icon name="x" size={15} stroke="var(--rose)" sw={2} />
+            Delete cross
+          </button>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+            <div style={{ fontSize: 13, color: 'var(--ink-3)', textAlign: 'center' }}>
+              Delete cross {cross.code}? Its {seedlings.length} seedling{seedlings.length !== 1 ? 's' : ''} will remain but be unlinked.
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setConfirmDelete(false)} style={{ ...btnReset, cursor: 'pointer', padding: '9px 16px', borderRadius: 999, border: '1px solid var(--line)', background: 'var(--surface)', fontSize: 13.5, fontWeight: 600, color: 'var(--ink-2)' }}>Cancel</button>
+              <button onClick={async () => { try { await deleteCross(cross.id); go('crosses') } catch { setConfirmDelete(false) } }} style={{ ...btnReset, cursor: 'pointer', padding: '9px 16px', borderRadius: 999, background: 'var(--rose)', color: '#fff', fontSize: 13.5, fontWeight: 600 }}>Delete cross</button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
