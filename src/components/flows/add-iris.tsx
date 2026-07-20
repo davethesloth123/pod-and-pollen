@@ -215,7 +215,8 @@ export function AddIrisFlow({ open, onClose, onSaved, presetCross, editIris }: A
       handleClose()
     } catch (e) {
       console.error(e)
-      setError('Could not save. Please try again.')
+      const msg = (e as { message?: string })?.message
+      setError(msg ? `Could not save: ${msg}` : 'Could not save. Please try again.')
       setSaving(false)
     }
   }
