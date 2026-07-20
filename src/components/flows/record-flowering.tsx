@@ -77,11 +77,16 @@ export function RecordFloweringFlow({ open, iris, editRecord, onClose, onSaved }
     try {
       const toCm = (v: string) => v.trim() ? cmFromDisplay(Number(v), region) : undefined
       const toNum = (v: string) => v.trim() ? Number(v) : undefined
-      // Only auto-flip status on a brand new record with a first-bloom date —
-      // editing an existing (possibly past) year shouldn't disturb current status.
-      const newStatus = (!editing && firstDate && iris.kind === 'Seedling' && iris.status === 'Growing')
-        ? 'First flower'
-        : (!editing && firstDate ? 'Flowering' : undefined)
+      // Flowering is "on" only while there's a first-bloom date this year and no
+      // last-bloom date yet. Entering a last date turns it off (back to Growing).
+      // Only the current year's record drives the live status; editing a past
+      // year shouldn't disturb it.
+      const isCurrentYear = (Number(year) || currentYear()) === currentYear()
+      let newStatus: string | undefined
+      if (isCurrentYear) {
+        if (lastDate) newStatus = 'Growing'          // finished flowering → off
+        else if (firstDate) newStatus = 'Flowering'  // in bloom → on
+      }
       await addFlowering({
         irisId: iris.id,
         year: Number(year) || currentYear(),

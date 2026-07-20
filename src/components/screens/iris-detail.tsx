@@ -924,7 +924,7 @@ export function IrisDetailScreen({
         </div>
 
         {/* Parentage */}
-        {iris.podParent && (
+        {(iris.podParent || iris.pollenParent) && (
           <div style={{ marginTop: 14 }}>
             <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', color: 'var(--ink-4)', marginBottom: 8 }}>Parentage</div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
