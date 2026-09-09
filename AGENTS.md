@@ -12,6 +12,17 @@ seedling → first flower → evaluation → outcome. It is deliberately iris-sp
 mobile-first for use outdoors, and must stay usable by growers who are older or not confident
 with software.
 
+## Shared database safety — authoritative development policy
+
+Read [`docs/development/DATA_ENVIRONMENT.md`](./docs/development/DATA_ENVIRONMENT.md) and
+[`BACKUP_AND_RECOVERY.md`](./docs/development/BACKUP_AND_RECOVERY.md) before hosted writes.
+`pod-pollen-dev` is the single **shared persistent** hosted development project, not disposable.
+Do not create another project/local stack, reset remote data, or use existing users as fixtures.
+Only positively verified dedicated Codex accounts may own automated write-test data. Never
+normalize old records automatically. Consequential migrations require reviewed new SQL and a
+verified appropriate backup; preserve applied migrations and existing users. CI never runs hosted
+write tests. Use the guarded manual integration tooling; no service-role bypass.
+
 ## Read before making substantial changes
 
 Detailed documentation lives in **[`docs/handover/`](./docs/handover/)**. Start with
@@ -35,13 +46,14 @@ QC feedback and resolved decisions), `docs/build-plan-2026-06-25.md`, and
 ## Commands
 
 ```bash
-npm ci                 # install (lockfile v3; Node ≥ 18.18, 20+ recommended)
+npm ci                 # install locked versions; Node 24 (.nvmrc)
 npm run dev            # dev server on :3000
 npm run build          # production build — must pass
 npm start              # serve the production build
-npx tsc --noEmit       # type check — THE ONLY WORKING AUTOMATED CHECK. Must be clean.
-npm run lint           # ⚠ BROKEN — no ESLint config exists; drops into an interactive prompt
-# no test command — there are no tests
+npm run typecheck      # strict TypeScript check
+npm run lint           # noninteractive; existing source debt is reported as warnings
+npm test               # local TypeScript unit/guard tests; known defects are explicit TODOs
+npm run test:integration # manual only; requires guarded synthetic identities and backup
 ```
 
 Requires `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `.env.local`
@@ -122,7 +134,7 @@ project/, chats/        Claude Design handoff bundle — design prototypes and t
 6. **A seedling's number is permanent provenance.** (Not yet built — but when it is, naming a
    seedling must *retain* its number, never replace it.)
 7. **Records are private by default.** There is no sharing model; do not add one casually.
-8. **UK = `dd-mm-yyyy` + centimetres. US = `mm-dd-yyyy` + inches.** Do **not** describe these as
+8. **UK = `dd/mm/yyyy` + centimetres. US = `mm/dd/yyyy` + inches.** Do **not** describe these as
    "metric" and "imperial" profiles — that inversion has already caused confusion. The UI says
    "Region & units".
 9. **Never show a success message for something that did not happen.** Three features currently
@@ -144,10 +156,10 @@ project/, chats/        Claude Design handoff bundle — design prototypes and t
 
 ## Testing expectations
 
-There are **no tests today**. Until that changes:
+Unit/safety tests and safe CI now exist; see `tests/README.md`. Hosted writes are manual and guarded.
 
 - `npx tsc --noEmit` must be clean, and `npm run build` must pass, before any push.
-- Then run the manual smoke path in
+- Using only dedicated Codex fixtures, run the applicable manual smoke path in
   [`TESTING_AND_QA.md §7`](./docs/handover/TESTING_AND_QA.md) — in particular step 6 (record a
   second year of flowering and confirm the first survives), which protects rule #1 above.
 - If you add logic to `lib/format.ts`, `lib/rubric.ts` or `lib/data/index.ts`, **add a test** —
